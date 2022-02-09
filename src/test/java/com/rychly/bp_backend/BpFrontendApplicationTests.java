@@ -1,4 +1,4 @@
-package com.rychly.bp_frontend;
+package com.rychly.bp_backend;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

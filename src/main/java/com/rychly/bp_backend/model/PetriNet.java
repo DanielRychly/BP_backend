@@ -1,4 +1,4 @@
-package com.rychly.bp_frontend.model;
+package com.rychly.bp_backend.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
