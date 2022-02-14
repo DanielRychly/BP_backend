@@ -20,6 +20,8 @@ public class Controller {
     @Autowired
     private IMyService service;
 
+
+    //deprecated
     @GetMapping("/test")
     public PetriNet greeting() {
 
@@ -74,7 +76,7 @@ public class Controller {
             return null;
         }
 
-        File tmp = new File("src/main/resources/uploaded_log_file.tmp");
+        File tmp = new File("src/main/resources/uploaded_log_file.txt");
 
         try(OutputStream os = new FileOutputStream(tmp)){
 
@@ -90,7 +92,7 @@ public class Controller {
 
     }
 
-    @PostMapping("/uploadPetrNet")
+    @PostMapping("/uploadPetriNet")
     public String uploadPetriNet(@RequestParam("file") MultipartFile multipartFile){
 
         //inspired by https://stackoverflow.com/questions/50890359/sending-files-from-angular-6-application-to-spring-boot-web-api-required-reques
@@ -100,7 +102,7 @@ public class Controller {
             return null;
         }
 
-        File tmp = new File("src/main/resources/uploaded_petri_net_file.tmp");
+        File tmp = new File("src/main/resources/uploaded_petri_net_file.xml");
 
         try(OutputStream os = new FileOutputStream(tmp)){
 
@@ -114,6 +116,11 @@ public class Controller {
 
         return "OK";
 
+    }
+
+    @GetMapping("/indexAndParseLogs")
+    public String indexAndParseLogs(){
+        return "OK";
     }
 
 
