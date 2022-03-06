@@ -6,6 +6,7 @@ import okhttp3.*;
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.configurationprocessor.json.JSONObject;
 import org.springframework.http.MediaType;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
@@ -92,6 +93,75 @@ public class Controller {
         return true;
     }
 
+
+
+    private boolean isIndexEmpty(String indexName) throws Exception{
+
+        try {
+
+            Request request = new Request.Builder().url("http://localhost:9200/" + indexName + "/_search?size=1000").get().build();
+            Response response = client.newCall(request).execute();
+
+            if (response.isSuccessful()) {
+
+                String responseString = response.body().string();
+
+                System.out.println("Checking if index empty");
+                System.out.println(responseString);
+
+                //parse response to json - not needed
+                JSONObject obj = new JSONObject(responseString);
+
+                int numberOfHits = Integer.parseInt(obj.getJSONObject("hits").getJSONObject("total").getString("value"));
+                System.out.println(numberOfHits);
+
+
+                if(numberOfHits==0){
+                    //index is empty, logstash has not feeded it
+                    return true;
+                }else{
+                    //index has data
+                    return false;
+                }
+
+
+
+
+            } else {
+                System.out.println("ERR: Could check if index is empty");
+                return true;
+            }
+        }catch(Exception e){
+            System.out.print(e.getCause());
+        }
+        return true;
+    }
+
+
+    private String extractFiredSequence(String indexName) throws Exception{
+        Request request = new Request.Builder().url("http://localhost:9200/"+indexName+"/_search?size=1000").get().build();
+        Response response = client.newCall(request).execute();
+
+        if(response.isSuccessful()){
+            String responseString = response.body().string();
+
+            System.out.println("Index data");
+            System.out.println(responseString);
+
+            //parse response to json - not needed
+            //JSONObject obj = new JSONObject(response.body().string());
+
+
+            //send it to the frontend to show fired sequence todo ******************
+            return responseString;
+
+        }else{
+            System.out.println("ERR: Could not get index data");
+            return "ERR: Could not get index data";
+        }
+
+    }
+
     @PostMapping("/uploadLogs")
     public String uploadLogs(@RequestParam("file") MultipartFile multipartFile) throws Exception{
 
@@ -109,117 +179,22 @@ public class Controller {
 
         //4. save uploaded file to desired location, this triggers logstash (only if it is different in size)
         /*can be cured by dirty solution - add random number of trash lines so the final saved file would not have the same size*/
-
         saveMultipartFile(multipartFile);
 
-
-
-
-
-/*
-
-        //this part is messy, first I need to delete index, then create it - create request is send asynchronously (this works),
-        //but after that idk how to tell elasticsearch to get logstash input from saved file    *******
-
-        //delete index
-        //help https://www.javaguides.net/2019/05/okhttp-delete-request-java-example.html
-        Request requestDeleteIndex = new Request.Builder()
-                .url("http://localhost:9200/logs/").delete()
-                .build();
-
-        try (Response responseDeleteIndex = client.newCall(requestDeleteIndex).execute()) {
-            if (!responseDeleteIndex.isSuccessful()) throw new IOException("Unexpected code " + responseDeleteIndex);
-
-            Headers responseDeleteIndexHeaders = responseDeleteIndex.headers();
-            for (int i = 0; i < responseDeleteIndexHeaders.size(); i++) {
-                System.out.println(responseDeleteIndexHeaders.name(i) + ": " + responseDeleteIndexHeaders.value(i));
-            }
-
-            System.out.println(responseDeleteIndex.body().string());
+        //here the logstash should be working
+        //checking, if thh index is empty - then sleep
+        while(isIndexEmpty("logs")){
+            //sleep
+            Thread.sleep(200);
         }
 
-        //create index - async
-        //help https://stackoverflow.com/questions/34886172/okhttp-put-example
-        RequestBody requestBody = RequestBody.create(null, new byte[0]);
-
-        Request requestCreateIndex = new Request.Builder()
-                .url("http://localhost:9200/logs").put(requestBody)
-                .build();
-
-        client.newCall(requestCreateIndex).enqueue(new Callback() {
-            @Override public void onFailure(Call call, IOException e) {
-                e.printStackTrace();
-            }
-
-            @Override public void onResponse(Call call, Response response) throws IOException {
-                try (ResponseBody responseBody = response.body()) {
-                    if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
-
-                    Headers responseHeaders = response.headers();
-                    for (int i = 0, size = responseHeaders.size(); i < size; i++) {
-                        System.out.println(responseHeaders.name(i) + ": " + responseHeaders.value(i));
-                    }
-
-                    //here call refresh - refresh will do nothing, i need to tell elasticsearch to get data from logstash from saved file
-                    //refresh index
-                    //request send with help from https://square.github.io/okhttp/recipes/
-                    Request requestRefreshIndex = new Request.Builder()
-                            .url("http://localhost:9200/logs/_refresh")
-                            .build();
-
-                    try (Response responseRefreshIndex = client.newCall(requestRefreshIndex).execute()) {
-                        if (!responseRefreshIndex.isSuccessful()) throw new IOException("Unexpected code " + responseRefreshIndex);
-
-                        Headers responseRefreshIndexHeaders = responseRefreshIndex.headers();
-                        for (int i = 0; i < responseRefreshIndexHeaders.size(); i++) {
-                            System.out.println(responseRefreshIndexHeaders.name(i) + ": " + responseRefreshIndexHeaders.value(i));
-                        }
-
-                        System.out.println(responseRefreshIndex.body().string());
-                    }
+        //send fired to frontend
+        String fired = extractFiredSequence("logs");
+        System.out.println(fired);
 
 
-                    System.out.println(responseBody.string());
-                }
-            }
-        });
 
-
-        */
-
-        /*
-        try (Response responseCreateIndex = client.newCall(requestCreateIndex).execute()) {
-            if (!responseCreateIndex.isSuccessful()) throw new IOException("Unexpected code " + responseCreateIndex);
-
-            Headers responseCreateIndexHeaders = responseCreateIndex.headers();
-            for (int i = 0; i < responseCreateIndexHeaders.size(); i++) {
-                System.out.println(responseCreateIndexHeaders.name(i) + ": " + responseCreateIndexHeaders.value(i));
-            }
-
-            System.out.println(responseCreateIndex.body().string());
-        }*/
-
-
-        /*
-        //refresh index
-        //request send with help from https://square.github.io/okhttp/recipes/
-        Request requestRefreshIndex = new Request.Builder()
-                .url("http://localhost:9200/logs/_refresh")
-                .build();
-
-        try (Response responseRefreshIndex = client.newCall(requestRefreshIndex).execute()) {
-            if (!responseRefreshIndex.isSuccessful()) throw new IOException("Unexpected code " + responseRefreshIndex);
-
-            Headers responseRefreshIndexHeaders = responseRefreshIndex.headers();
-            for (int i = 0; i < responseRefreshIndexHeaders.size(); i++) {
-                System.out.println(responseRefreshIndexHeaders.name(i) + ": " + responseRefreshIndexHeaders.value(i));
-            }
-
-            System.out.println(responseRefreshIndex.body().string());
-        }
-        */
-
-        return "OK";
+        return fired;
 
     }
 
@@ -249,141 +224,9 @@ public class Controller {
 
     }
 
-    @GetMapping("/indexAndParseLogs")
-    public String indexAndParseLogs(){
-        return "OK";
-    }
-
-    //deprecated
-    //@PostMapping("/uploadLogs")
-    public String uploadLogs__DEPRECATED(@RequestParam("file") MultipartFile multipartFile) throws Exception{
-
-        //inspired by https://stackoverflow.com/questions/50890359/sending-files-from-angular-6-application-to-spring-boot-web-api-required-reques
-        //inspired by https://www.baeldung.com/spring-multipartfile-to-file
 
 
-        //this part is ok************
-        if (multipartFile.isEmpty()) {
-            return null;
-        }
-
-        File tmp = new File("src/main/resources/uploaded_log_file.txt");
-
-        try(OutputStream os = new FileOutputStream(tmp)){
-
-            os.write(multipartFile.getBytes());
-
-        } catch (IOException e) {
-
-            e.printStackTrace();
-            return null;
-        }
-
-/*
-
-        //this part is messy, first I need to delete index, then create it - create request is send asynchronously (this works),
-        //but after that idk how to tell elasticsearch to get logstash input from saved file    *******
-
-        //delete index
-        //help https://www.javaguides.net/2019/05/okhttp-delete-request-java-example.html
-        Request requestDeleteIndex = new Request.Builder()
-                .url("http://localhost:9200/logs/").delete()
-                .build();
-
-        try (Response responseDeleteIndex = client.newCall(requestDeleteIndex).execute()) {
-            if (!responseDeleteIndex.isSuccessful()) throw new IOException("Unexpected code " + responseDeleteIndex);
-
-            Headers responseDeleteIndexHeaders = responseDeleteIndex.headers();
-            for (int i = 0; i < responseDeleteIndexHeaders.size(); i++) {
-                System.out.println(responseDeleteIndexHeaders.name(i) + ": " + responseDeleteIndexHeaders.value(i));
-            }
-
-            System.out.println(responseDeleteIndex.body().string());
-        }
-
-        //create index - async
-        //help https://stackoverflow.com/questions/34886172/okhttp-put-example
-        RequestBody requestBody = RequestBody.create(null, new byte[0]);
-
-        Request requestCreateIndex = new Request.Builder()
-                .url("http://localhost:9200/logs").put(requestBody)
-                .build();
-
-        client.newCall(requestCreateIndex).enqueue(new Callback() {
-            @Override public void onFailure(Call call, IOException e) {
-                e.printStackTrace();
-            }
-
-            @Override public void onResponse(Call call, Response response) throws IOException {
-                try (ResponseBody responseBody = response.body()) {
-                    if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
-
-                    Headers responseHeaders = response.headers();
-                    for (int i = 0, size = responseHeaders.size(); i < size; i++) {
-                        System.out.println(responseHeaders.name(i) + ": " + responseHeaders.value(i));
-                    }
-
-                    //here call refresh - refresh will do nothing, i need to tell elasticsearch to get data from logstash from saved file
-                    //refresh index
-                    //request send with help from https://square.github.io/okhttp/recipes/
-                    Request requestRefreshIndex = new Request.Builder()
-                            .url("http://localhost:9200/logs/_refresh")
-                            .build();
-
-                    try (Response responseRefreshIndex = client.newCall(requestRefreshIndex).execute()) {
-                        if (!responseRefreshIndex.isSuccessful()) throw new IOException("Unexpected code " + responseRefreshIndex);
-
-                        Headers responseRefreshIndexHeaders = responseRefreshIndex.headers();
-                        for (int i = 0; i < responseRefreshIndexHeaders.size(); i++) {
-                            System.out.println(responseRefreshIndexHeaders.name(i) + ": " + responseRefreshIndexHeaders.value(i));
-                        }
-
-                        System.out.println(responseRefreshIndex.body().string());
-                    }
 
 
-                    System.out.println(responseBody.string());
-                }
-            }
-        });
-
-
-        */
-
-        /*
-        try (Response responseCreateIndex = client.newCall(requestCreateIndex).execute()) {
-            if (!responseCreateIndex.isSuccessful()) throw new IOException("Unexpected code " + responseCreateIndex);
-
-            Headers responseCreateIndexHeaders = responseCreateIndex.headers();
-            for (int i = 0; i < responseCreateIndexHeaders.size(); i++) {
-                System.out.println(responseCreateIndexHeaders.name(i) + ": " + responseCreateIndexHeaders.value(i));
-            }
-
-            System.out.println(responseCreateIndex.body().string());
-        }*/
-
-
-        /*
-        //refresh index
-        //request send with help from https://square.github.io/okhttp/recipes/
-        Request requestRefreshIndex = new Request.Builder()
-                .url("http://localhost:9200/logs/_refresh")
-                .build();
-
-        try (Response responseRefreshIndex = client.newCall(requestRefreshIndex).execute()) {
-            if (!responseRefreshIndex.isSuccessful()) throw new IOException("Unexpected code " + responseRefreshIndex);
-
-            Headers responseRefreshIndexHeaders = responseRefreshIndex.headers();
-            for (int i = 0; i < responseRefreshIndexHeaders.size(); i++) {
-                System.out.println(responseRefreshIndexHeaders.name(i) + ": " + responseRefreshIndexHeaders.value(i));
-            }
-
-            System.out.println(responseRefreshIndex.body().string());
-        }
-        */
-
-        return "OK";
-
-    }
 
 }
