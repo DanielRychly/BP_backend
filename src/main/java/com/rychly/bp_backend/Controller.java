@@ -1,27 +1,19 @@
 package com.rychly.bp_backend;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rychly.bp_backend.model.PetriNet;
+import com.rychly.bp_backend.comparators.Log;
+import com.rychly.bp_backend.comparators.logComparator;
 import com.rychly.bp_backend.responses.FiredTransitionsResponse;
 import okhttp3.*;
 import okhttp3.RequestBody;
-import okhttp3.ResponseBody;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.configurationprocessor.json.JSONArray;
 import org.springframework.boot.configurationprocessor.json.JSONObject;
 //import org.json.JSONObject;
-import org.springframework.http.MediaType;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.sql.Array;
-import java.sql.Blob;
 import java.util.ArrayList;
 
 @RestController
@@ -99,8 +91,6 @@ public class Controller {
         return true;
     }
 
-
-
     private boolean isIndexEmpty(String indexName) throws Exception{
 
         try {
@@ -143,40 +133,80 @@ public class Controller {
         return true;
     }
 
+    private ArrayList<Log> extractLogs(String indexName) throws Exception{
 
-    private String extractFiredSequence(String indexName) throws Exception{
         Request request = new Request.Builder().url("http://localhost:9200/"+indexName+"/_search?size=1000").get().build();
         Response response = client.newCall(request).execute();
 
         if(response.isSuccessful()){
             String responseString = response.body().string();
-
-            //System.out.println("Index data");
-            //System.out.println(responseString);
-
-            //parse response to json - not needed   ****uncommented this
             JSONObject firedJSON = new JSONObject(responseString);
-            //JSONObject hits = firedJSON.getJSONObject("hits");
-            //JSONObject hits2 = hits.getJSONObject("hits");
-
-
-
-
-
-            //bla
-
-            //send it to the frontend to show fired sequence todo ******************
-            //return responseString;
             JSONArray ja = firedJSON.getJSONObject("hits").getJSONArray("hits");
+            //System.out.println("ExtractedSequence:");
+            //System.out.println(ja.toString());
+
+            //get array list version
+            ArrayList<Log> list = new ArrayList<Log>();
+            //ArrayList<JSONObject> list = new ArrayList<JSONObject>();
+            for(int i=0;i<ja.length();i++){
 
 
-            return ja.toString();
+                Log l = new Log();
+
+                l.setYear2TS(ja.getJSONObject(i).getJSONObject("_source").get("year2TS").toString());
+                l.setMonth2TS(ja.getJSONObject(i).getJSONObject("_source").get("month2TS").toString());
+                l.setDay2TS(ja.getJSONObject(i).getJSONObject("_source").get("day2TS").toString());
+
+                l.setHour2TS(ja.getJSONObject(i).getJSONObject("_source").get("hour2TS").toString());
+                l.setMinute2TS(ja.getJSONObject(i).getJSONObject("_source").get("minute2TS").toString());
+                l.setSecond2TS(ja.getJSONObject(i).getJSONObject("_source").get("second2TS").toString());
+
+                l.setCase_id(ja.getJSONObject(i).getJSONObject("_source").get("case_id").toString());
+
+                try{
+                    //some logs dont have fired transition id - tranition wasnt named
+                    l.setFired_transition_id(ja.getJSONObject(i).getJSONObject("_source").get("fired_transition_id").toString());
+
+                }catch (Exception e){
+
+                }
+
+
+
+                //list.add(ja.getJSONObject(i).getJSONObject("_source"));
+                list.add(l);
+            }
+
+            //sort array of indexed and stripped logs
+            list.sort(new logComparator());
+
+
+            System.out.println("printing items in list");
+            for(int i=0;i<list.size();i++){
+                System.out.println(list.get(i));
+            }
+
+            //sort array list version
+
+            return list;
+
+            //return ja.toString();
 
         }else{
             System.out.println("ERR: Could not get index data");
             return null;
         }
 
+    }
+
+    private ArrayList<String> extractFiredTransitions(ArrayList<Log> logs){
+        ArrayList<String> transitions = new ArrayList<String>();
+
+        for(int i =0;i<logs.size();i++){
+            transitions.add(logs.get(i).getFired_transition_id());
+        }
+
+        return transitions;
     }
 
     @PostMapping("/uploadLogs")
@@ -206,11 +236,14 @@ public class Controller {
         }
 
         //send fired to frontend
-        String fired = extractFiredSequence("logs");
+        ArrayList<Log> logs = extractLogs("logs");
+        ArrayList<String> fired = extractFiredTransitions(logs);
+
         //System.out.println("hits as json array");
+        System.out.println("fired:");
         System.out.println(fired);
 
-        return new FiredTransitionsResponse(fired);
+        return new FiredTransitionsResponse(fired.toString());
 
         //return fired;
         //return null;
