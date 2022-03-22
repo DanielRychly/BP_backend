@@ -2,21 +2,27 @@ package com.rychly.bp_backend;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rychly.bp_backend.model.PetriNet;
+import com.rychly.bp_backend.responses.FiredTransitionsResponse;
 import okhttp3.*;
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.configurationprocessor.json.JSONArray;
 import org.springframework.boot.configurationprocessor.json.JSONObject;
+//import org.json.JSONObject;
 import org.springframework.http.MediaType;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
+import java.sql.Array;
 import java.sql.Blob;
+import java.util.ArrayList;
 
 @RestController
 @CrossOrigin(origins = "http://localhost:4200")
@@ -145,27 +151,36 @@ public class Controller {
         if(response.isSuccessful()){
             String responseString = response.body().string();
 
-            System.out.println("Index data");
-            System.out.println(responseString);
+            //System.out.println("Index data");
+            //System.out.println(responseString);
 
-            //parse response to json - not needed
-            //JSONObject obj = new JSONObject(response.body().string());
+            //parse response to json - not needed   ****uncommented this
+            JSONObject firedJSON = new JSONObject(responseString);
+            //JSONObject hits = firedJSON.getJSONObject("hits");
+            //JSONObject hits2 = hits.getJSONObject("hits");
+
+
+
 
 
             //bla
 
             //send it to the frontend to show fired sequence todo ******************
-            return responseString;
+            //return responseString;
+            JSONArray ja = firedJSON.getJSONObject("hits").getJSONArray("hits");
+
+
+            return ja.toString();
 
         }else{
             System.out.println("ERR: Could not get index data");
-            return "ERR: Could not get index data";
+            return null;
         }
 
     }
 
     @PostMapping("/uploadLogs")
-    public String uploadLogs(@RequestParam("file") MultipartFile multipartFile) throws Exception{
+    public FiredTransitionsResponse uploadLogs(@RequestParam("file") MultipartFile multipartFile) throws Exception{
 
         //1. check index existence, then either delete + create or only create
         if (indexExists("logs")){
@@ -192,11 +207,13 @@ public class Controller {
 
         //send fired to frontend
         String fired = extractFiredSequence("logs");
+        //System.out.println("hits as json array");
         System.out.println(fired);
 
+        return new FiredTransitionsResponse(fired);
 
-
-        return fired;
+        //return fired;
+        //return null;
 
     }
 
