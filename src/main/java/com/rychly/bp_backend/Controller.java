@@ -2,6 +2,7 @@ package com.rychly.bp_backend;
 
 import com.rychly.bp_backend.comparators.Log;
 import com.rychly.bp_backend.comparators.logComparator;
+import com.rychly.bp_backend.model.PetriNet;
 import com.rychly.bp_backend.responses.FiredTransitionsResponse;
 import okhttp3.*;
 import okhttp3.RequestBody;
@@ -12,6 +13,9 @@ import org.springframework.boot.configurationprocessor.json.JSONObject;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
 import java.io.*;
 
 import java.util.ArrayList;
@@ -61,12 +65,17 @@ public class Controller {
         return response.isSuccessful();
     }
 
-    private boolean saveMultipartFile(MultipartFile multipartFile) throws IOException{
+    private boolean saveMultipartFile(MultipartFile multipartFile, String filename) throws IOException{
+
+        //inspired by https://stackoverflow.com/questions/50890359/sending-files-from-angular-6-application-to-spring-boot-web-api-required-reques
+        //inspired by https://www.baeldung.com/spring-multipartfile-to-file
+
+
         if (multipartFile.isEmpty()) {
             return false;
         }
 
-        File tmp = new File("src/main/resources/uploaded_log_file.txt");
+        File tmp = new File("src/main/resources/" + filename);
 
         try(OutputStream os = new FileOutputStream(tmp)){
 
@@ -78,15 +87,17 @@ public class Controller {
             return false;
         }
 
-        //add random number of trash lines for randomizing file size
-        FileWriter fileWriter = new FileWriter("src/main/resources/uploaded_log_file.txt",true);
-        PrintWriter printWriter = new PrintWriter(fileWriter);
+        if(filename == "uploaded_log_file.txt"){
+            //add random number of trash lines for randomizing file size
+            FileWriter fileWriter = new FileWriter("src/main/resources/uploaded_log_file.txt",true);
+            PrintWriter printWriter = new PrintWriter(fileWriter);
 
-        int numOfLines = (int)(Math.random() * 200);
-        for (int i=0;i< numOfLines; i++){
-            printWriter.print("//padding line for randomized size -> logstash reasons\n");
+            int numOfLines = (int)(Math.random() * 200);
+            for (int i=0;i< numOfLines; i++){
+                printWriter.print("//padding line for randomized size -> logstash reasons\n");
+            }
+            printWriter.close();
         }
-        printWriter.close();
 
         return true;
     }
@@ -209,6 +220,29 @@ public class Controller {
         return transitions;
     }
 
+    public PetriNet unmarshall(String filename) throws JAXBException, IOException {
+
+        //inspired by:
+        //https://www.baeldung.com/jaxb
+        //https://stackoverflow.com/questions/16364547/how-to-parse-xml-to-java-object
+        //https://stackoverflow.com/questions/51916221/javax-xml-bind-jaxbexception-implementation-of-jaxb-api-has-not-been-found-on-mo
+
+
+        try{
+            JAXBContext context = JAXBContext.newInstance(PetriNet.class);
+            Unmarshaller u = context.createUnmarshaller();
+            FileReader fr = new FileReader(filename);
+            PetriNet pn = (PetriNet) u.unmarshal(fr);
+            return pn;
+
+        }catch(Exception e){
+            e.printStackTrace();
+            return null;
+
+        }
+
+    }
+
     @PostMapping("/uploadLogs")
     public FiredTransitionsResponse uploadLogs(@RequestParam("file") MultipartFile multipartFile) throws Exception{
 
@@ -226,7 +260,7 @@ public class Controller {
 
         //4. save uploaded file to desired location, this triggers logstash (only if it is different in size)
         /*can be cured by dirty solution - add random number of trash lines so the final saved file would not have the same size*/
-        saveMultipartFile(multipartFile);
+        saveMultipartFile(multipartFile,"uploaded_log_file.txt");
 
         //here the logstash should be working
         //checking, if thh index is empty - then sleep
@@ -251,26 +285,27 @@ public class Controller {
     }
 
     @PostMapping("/uploadPetriNet")
-    public String uploadPetriNet(@RequestParam("file") MultipartFile multipartFile){
+    public String uploadPetriNet(@RequestParam("file") MultipartFile multipartFile) throws Exception{
 
-        //inspired by https://stackoverflow.com/questions/50890359/sending-files-from-angular-6-application-to-spring-boot-web-api-required-reques
-        //inspired by https://www.baeldung.com/spring-multipartfile-to-file
+        //1. save original net xml file
+        saveMultipartFile(multipartFile,"uploaded_petri_net_file.xml");
 
-        if (multipartFile.isEmpty()) {
-            return null;
-        }
+        //2. parse it - > create object of that petri net, use JAXB
+        PetriNet originalPetriNet = unmarshall("src/main/resources/uploaded_petri_net_file.xml");
+        System.out.println("original petri net:");
+        System.out.println(originalPetriNet);
 
-        File tmp = new File("src/main/resources/uploaded_petri_net_file.xml");
+        //3. compute token flow and create process net object
+        ArrayList<String> mock = new ArrayList<String>();
+        mock.add("START");
+        originalPetriNet.simulateTokenFlow(mock);
+        System.out.println("original petri net after computed token flow:");
+        System.out.println(originalPetriNet);
 
-        try(OutputStream os = new FileOutputStream(tmp)){
+        //4.create process net xml from object
 
-            os.write(multipartFile.getBytes());
+        //5. send process net xml to frontend for download
 
-        } catch (IOException e) {
-
-            e.printStackTrace();
-            return null;
-        }
 
         return "OK";
 

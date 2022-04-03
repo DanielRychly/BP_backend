@@ -14,6 +14,5 @@ public interface IMyService {
     public void simulateTokenFlow();
     public void generateProcessNet();
 
-    public PetriNet test();
 
 }

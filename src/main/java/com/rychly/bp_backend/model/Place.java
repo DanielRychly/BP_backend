@@ -4,9 +4,14 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlRootElement;
+
 @Getter
 @Setter
-@AllArgsConstructor
+@XmlRootElement(name = "place")
+@XmlAccessorType(XmlAccessType.FIELD)
 public class Place {
 
     private String id;
@@ -16,4 +21,15 @@ public class Place {
     private int tokens;
     private boolean isStatic;
 
+    @Override
+    public String toString() {
+        return "Place{" +
+                "id='" + id + '\'' +
+                ", x=" + x +
+                ", y=" + y +
+                ", label='" + label + '\'' +
+                ", tokens=" + tokens +
+                ", isStatic=" + isStatic +
+                '}';
+    }
 }

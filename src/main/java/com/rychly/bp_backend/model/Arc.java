@@ -4,9 +4,14 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlRootElement;
+
 @Getter
 @Setter
-@AllArgsConstructor
+@XmlRootElement(name = "arc")
+@XmlAccessorType(XmlAccessType.FIELD)
 public class Arc {
 
     private String id;
@@ -15,4 +20,15 @@ public class Arc {
     private String destinationId;
     private int multiplicity;
 
+    @Override
+    public String toString() {
+        return "Arc{" +
+                "id='" + id + '\'' +
+                ", type='" + type + '\'' +
+                ", sourceId='" + sourceId + '\'' +
+                ", destinationId='" + destinationId + '\'' +
+                ", multiplicity=" + multiplicity +
+                '}';
+    }
 }
+
