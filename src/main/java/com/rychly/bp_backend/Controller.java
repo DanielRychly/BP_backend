@@ -10,8 +10,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.configurationprocessor.json.JSONArray;
 import org.springframework.boot.configurationprocessor.json.JSONObject;
 //import org.json.JSONObject;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -23,6 +28,8 @@ import java.util.ArrayList;
 @RestController
 @CrossOrigin(origins = "http://localhost:4200")
 public class Controller {
+
+
 
     @Autowired
     private IMyService service;
@@ -127,7 +134,7 @@ public class Controller {
                     //index is empty, logstash has not feeded it
                     return true;
                 }else{
-                    //index has data
+
                     return false;
                 }
 
@@ -244,7 +251,11 @@ public class Controller {
     }
 
     @PostMapping("/uploadLogs")
-    public FiredTransitionsResponse uploadLogs(@RequestParam("file") MultipartFile multipartFile) throws Exception{
+    public FiredTransitionsResponse uploadLogs(@RequestParam("file") MultipartFile multipartFile, @RequestParam("caseName") String caseName) throws Exception{
+
+        //0. print caseName
+        System.out.println("Case name: ");
+        System.out.println(caseName);
 
         //1. check index existence, then either delete + create or only create
         if (indexExists("logs")){
@@ -266,7 +277,9 @@ public class Controller {
         //checking, if thh index is empty - then sleep
         while(isIndexEmpty("logs")){
             //sleep
-            Thread.sleep(200);
+            //todo this is not ok, should be far less but for some reason logstash is not indexing all logs in accept order model
+            Thread.sleep(5000);
+            //Thread.sleep(200);
         }
 
         //send fired to frontend
@@ -287,6 +300,8 @@ public class Controller {
     @PostMapping("/uploadPetriNet")
     public String uploadPetriNet(@RequestParam("file") MultipartFile multipartFile) throws Exception{
 
+
+
         //1. save original net xml file
         saveMultipartFile(multipartFile,"uploaded_petri_net_file.xml");
 
@@ -296,9 +311,9 @@ public class Controller {
         System.out.println(originalPetriNet);
 
         //3. compute token flow and create process net object
-        ArrayList<String> mock = new ArrayList<String>();
-        mock.add("START");
-        originalPetriNet.simulateTokenFlow(mock);
+        ArrayList<String> test = new ArrayList<String>();
+        test.add("START");
+        originalPetriNet.simulateTokenFlow(test);
         System.out.println("original petri net after computed token flow:");
         System.out.println(originalPetriNet);
 
@@ -310,8 +325,6 @@ public class Controller {
         return "OK";
 
     }
-
-
 
 
 
