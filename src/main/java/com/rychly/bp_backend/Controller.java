@@ -35,8 +35,12 @@ import java.util.ArrayList;
 public class Controller {
 
 
-    public Controller() {
+    public Controller() throws Exception {
         clearLogFileAtStart("uploaded_log_file.txt");
+
+        //delete logstash sincedb
+        FileUtils.cleanDirectory(new File("C:\\Users\\rychl\\Desktop\\logstash-7.16.2-windows-x86_64\\logstash-7.16.2\\data\\plugins\\inputs\\file"));
+
     }
 
     private final OkHttpClient client = new OkHttpClient();
@@ -45,36 +49,51 @@ public class Controller {
 
         Request request = new Request.Builder().url("http://localhost:9200/"+indexName+"/").head().build();
         Response response = client.newCall(request).execute();
-        if(response.isSuccessful()){
+
+        boolean success = response.isSuccessful();
+
+        if(success){
             System.out.println("Index exists");
+
         }else{
             System.out.println("Index does not exist");
+
         }
-        return response.isSuccessful();
+        response.body().close();
+
+        return success;
     }
 
     private boolean deleteIndex(String indexName) throws Exception{
 
         Request request = new Request.Builder().url("http://localhost:9200/"+indexName+"/").delete().build();
         Response response = client.newCall(request).execute();
-        if(response.isSuccessful()){
+        boolean success = response.isSuccessful();
+
+        if(success){
             System.out.println("Index deleted");
+
         }else{
             System.out.println("Index not deleted");
+
         }
-        return response.isSuccessful();
+        response.body().close();
+        return success;
     }
 
     private boolean createIndex(String indexName) throws Exception{
         RequestBody requestBody = RequestBody.create(null, new byte[0]);
         Request request = new Request.Builder().url("http://localhost:9200/"+indexName+"/").put(requestBody).build();
         Response response = client.newCall(request).execute();
-        if(response.isSuccessful()){
+        boolean success = response.isSuccessful();
+        if(success){
             System.out.println("Index created");
         }else{
             System.out.println("Index not created");
         }
-        return response.isSuccessful();
+        response.body().close();
+
+        return success;
     }
 
     private boolean saveMultipartFile(MultipartFile multipartFile, String filename) throws Exception{
@@ -131,7 +150,8 @@ public class Controller {
             Request request = new Request.Builder().url("http://localhost:9200/" + indexName + "/_search?size=1000").get().build();
             Response response = client.newCall(request).execute();
 
-            if (response.isSuccessful()) {
+            boolean success = response.isSuccessful();
+            if (success) {
 
                 String responseString = response.body().string();
 
@@ -147,9 +167,12 @@ public class Controller {
 
                 if(numberOfHits==0){
                     //index is empty, logstash has not feeded it
+
+                    response.body().close();
                     return true;
                 }else{
 
+                    response.body().close();
                     return false;
                 }
 
@@ -157,10 +180,12 @@ public class Controller {
 
 
             } else {
+                response.body().close();
                 System.out.println("ERR: Could check if index is empty");
                 return true;
             }
         }catch(Exception e){
+
             System.out.print(e.getCause());
         }
         return true;
@@ -170,8 +195,9 @@ public class Controller {
 
         Request request = new Request.Builder().url("http://localhost:9200/"+indexName+"/_search?size=1000").get().build();
         Response response = client.newCall(request).execute();
+        boolean success = response.isSuccessful();
 
-        if(response.isSuccessful()){
+        if(success){
             String responseString = response.body().string();
             JSONObject firedJSON = new JSONObject(responseString);
             JSONArray ja = firedJSON.getJSONObject("hits").getJSONArray("hits");
@@ -207,11 +233,15 @@ public class Controller {
 
 
                 //filter only logs with desired case id (case id and case name used interchangeably :/ )
+                /*
                 if (l.getCase_id().equals(caseName)){
                     list.add(l);
-                }
+                }*/
+                list.add(l);
 
             }
+
+            response.body().close();
 
             //sort array of indexed and stripped logs
             list.sort(new logComparator());
@@ -293,9 +323,8 @@ public class Controller {
         //here the logstash should be working
         //checking, if thh index is empty - then sleep
         while(isIndexEmpty("logs")){
+
             //sleep
-            //todo this is not ok, should be far less but for some reason logstash is not indexing all logs in accept order model
-            //Thread.sleep(5000);
             Thread.sleep(200);
         }
 

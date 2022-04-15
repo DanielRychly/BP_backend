@@ -12,6 +12,22 @@ import java.util.List;
 @XmlRootElement(name = "document")
 public class PetriNet {
 
+    /*
+    @XmlElement(name = "place")
+    public List<Place> places = null;
+
+    @XmlElement(name = "transition")
+    public List<Transition> transitions = null;
+
+    @XmlElement(name = "arc")
+    public List<Arc> arcs = null;
+
+    public int processNetPlacesCurrentId = 0;
+    public int processNetArcsCurrentId = 0;
+    public int processNetPlacesCurrentX = 0;
+    public int processNetPlacesCurrentY = 0;
+    */
+
     @XmlElement(name = "place")
     private List<Place> places = null;
 
@@ -21,7 +37,11 @@ public class PetriNet {
     @XmlElement(name = "arc")
     private List<Arc> arcs = null;
 
+
+
     public void fireTransition(String transitionLabel){
+
+        int processNetPlacesCurrentId = 0;
 
         //localize transition
         Transition firedTransition = null;
@@ -55,8 +75,14 @@ public class PetriNet {
             for(Place p: this.places){
                 if(p.getId().equals(labelOfInputPlace)){
                     p.setTokens(p.getTokens()-multiplicity);
+
+
+
                 }
             }
+
+
+
 
         }
 
@@ -71,17 +97,53 @@ public class PetriNet {
                 }
             }
 
+
+            /*
+            //added for creating places in process net  ****************************************************************
+            for(int i=0;i<multiplicity;i++){
+                Place p = new Place();
+                p.setId("p" + processNetPlacesCurrentId);
+                p.setLabel("p" + processNetPlacesCurrentId);
+                p.setX(processNetPlacesCurrentX);
+                p.setY(processNetPlacesCurrentY);
+
+                processNet.places.add(p);
+
+
+                processNetPlacesCurrentId++;
+                processNetPlacesCurrentX += 20;
+                processNetPlacesCurrentY += 20;
+
+                Arc processNetArc = new Arc();
+                processNetArc.setId("a"+processNetArcsCurrentId);
+                processNetArc.setMultiplicity(1);
+                processNetArc.setDestinationId(p.getId());
+                processNetArc.setSourceId(firedTransition.getId());
+                processNet.arcs.add(a);
+
+                processNetArcsCurrentId++;
+
+
+
+
+            }
+            */
+
+
         }
+
+
+
 
 
 
     }
 
 
+
     public void simulateTokenFlow(List<String> firedTransitions){
 
         //changes the state of the petri net based on the sequence of fired transitions labels
-
         for(String transitionLabel : firedTransitions){
 
             //fire every fired transition from the sequence
