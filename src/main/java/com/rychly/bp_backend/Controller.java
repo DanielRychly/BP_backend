@@ -6,6 +6,7 @@ import com.rychly.bp_backend.model.PetriNet;
 import com.rychly.bp_backend.responses.FiredTransitionsResponse;
 import okhttp3.*;
 import okhttp3.RequestBody;
+import org.apache.tomcat.util.http.fileupload.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.configurationprocessor.json.JSONArray;
 import org.springframework.boot.configurationprocessor.json.JSONObject;
@@ -25,14 +26,18 @@ import java.io.*;
 
 import java.util.ArrayList;
 
+
+
+
+
 @RestController
 @CrossOrigin(origins = "http://localhost:4200")
 public class Controller {
 
 
-
-    @Autowired
-    private IMyService service;
+    public Controller() {
+        clearLogFileAtStart("uploaded_log_file.txt");
+    }
 
     private final OkHttpClient client = new OkHttpClient();
 
@@ -72,10 +77,17 @@ public class Controller {
         return response.isSuccessful();
     }
 
-    private boolean saveMultipartFile(MultipartFile multipartFile, String filename) throws IOException{
+    private boolean saveMultipartFile(MultipartFile multipartFile, String filename) throws Exception{
 
         //inspired by https://stackoverflow.com/questions/50890359/sending-files-from-angular-6-application-to-spring-boot-web-api-required-reques
         //inspired by https://www.baeldung.com/spring-multipartfile-to-file
+
+
+        //delete logstash sincedb
+        // C:\Users\rychl\Desktop\logstash-7.16.2-windows-x86_64\logstash-7.16.2\data\plugins\inputs\file
+
+
+        //FileUtils.cleanDirectory(new File("C:\\Users\\rychl\\Desktop\\logstash-7.16.2-windows-x86_64\\logstash-7.16.2\\data\\plugins\\inputs\\file"));
 
 
         if (multipartFile.isEmpty()) {
@@ -84,9 +96,10 @@ public class Controller {
 
         File tmp = new File("src/main/resources/" + filename);
 
-        try(OutputStream os = new FileOutputStream(tmp)){
+        try(OutputStream os = new FileOutputStream(tmp,true)){
 
             os.write(multipartFile.getBytes());
+
 
         } catch (IOException e) {
 
@@ -94,19 +107,21 @@ public class Controller {
             return false;
         }
 
-        if(filename == "uploaded_log_file.txt"){
-            //add random number of trash lines for randomizing file size
-            FileWriter fileWriter = new FileWriter("src/main/resources/uploaded_log_file.txt",true);
-            PrintWriter printWriter = new PrintWriter(fileWriter);
+        return true;
+    }
 
-            int numOfLines = (int)(Math.random() * 200);
-            for (int i=0;i< numOfLines; i++){
-                printWriter.print("//padding line for randomized size -> logstash reasons\n");
-            }
-            printWriter.close();
+    private boolean clearLogFileAtStart(String filename){
+
+        File tmp = new File("src/main/resources/" + filename);
+
+        try (PrintWriter p = new PrintWriter(new FileOutputStream(tmp))) {
+            p.println("");
+        } catch (FileNotFoundException e1) {
+            e1.printStackTrace();
         }
 
         return true;
+
     }
 
     private boolean isIndexEmpty(String indexName) throws Exception{
@@ -151,7 +166,7 @@ public class Controller {
         return true;
     }
 
-    private ArrayList<Log> extractLogs(String indexName) throws Exception{
+    private ArrayList<Log> extractLogs(String indexName,String caseName) throws Exception{
 
         Request request = new Request.Builder().url("http://localhost:9200/"+indexName+"/_search?size=1000").get().build();
         Response response = client.newCall(request).execute();
@@ -187,12 +202,15 @@ public class Controller {
 
                 }catch (Exception e){
 
+
                 }
 
 
+                //filter only logs with desired case id (case id and case name used interchangeably :/ )
+                if (l.getCase_id().equals(caseName)){
+                    list.add(l);
+                }
 
-                //list.add(ja.getJSONObject(i).getJSONObject("_source"));
-                list.add(l);
             }
 
             //sort array of indexed and stripped logs
@@ -269,8 +287,7 @@ public class Controller {
 
         }
 
-        //4. save uploaded file to desired location, this triggers logstash (only if it is different in size)
-        /*can be cured by dirty solution - add random number of trash lines so the final saved file would not have the same size*/
+        //4. append logs to log file
         saveMultipartFile(multipartFile,"uploaded_log_file.txt");
 
         //here the logstash should be working
@@ -278,12 +295,12 @@ public class Controller {
         while(isIndexEmpty("logs")){
             //sleep
             //todo this is not ok, should be far less but for some reason logstash is not indexing all logs in accept order model
-            Thread.sleep(5000);
-            //Thread.sleep(200);
+            //Thread.sleep(5000);
+            Thread.sleep(200);
         }
 
         //send fired to frontend
-        ArrayList<Log> logs = extractLogs("logs");
+        ArrayList<Log> logs = extractLogs("logs",caseName);
         ArrayList<String> fired = extractFiredTransitions(logs);
 
         //System.out.println("hits as json array");
