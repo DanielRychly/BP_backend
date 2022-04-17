@@ -41,7 +41,7 @@ public class PetriNet {
 
     public void fireTransition(String transitionLabel){
 
-        int processNetPlacesCurrentId = 0;
+
 
         //localize transition
         Transition firedTransition = null;

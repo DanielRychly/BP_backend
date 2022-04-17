@@ -233,11 +233,13 @@ public class Controller {
 
 
                 //filter only logs with desired case id (case id and case name used interchangeably :/ )
-                /*
+
                 if (l.getCase_id().equals(caseName)){
                     list.add(l);
-                }*/
-                list.add(l);
+                }
+
+                //not filtered logs
+                //list.add(l);
 
             }
 
