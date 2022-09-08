@@ -5,6 +5,7 @@ import lombok.Setter;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlTransient;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,9 +38,30 @@ public class PetriNet {
     @XmlElement(name = "arc")
     private List<Arc> arcs = null;
 
+    @XmlTransient
+    public int processNetTransitionsCurrentId = 1;
+    @XmlTransient
+    public int processNetPlacesCurrentId = 1;
+    @XmlTransient
+    public int processNetArcsCurrentId = 1;
+    @XmlTransient
+    public int processNetCurrentX = 20;
+    @XmlTransient
+    public int processNetCurrentY = 20;
 
 
-    public void fireTransition(String transitionLabel){
+    public String getPlaceLabelById(String id){
+        String label = null;
+        for(Place p: this.places){
+            if(p.getId().equals(id)){
+                label = p.getLabel();
+            }
+
+        }
+        return label;
+    }
+
+    public PetriNet fireTransition(String transitionLabel, PetriNet processNet){
 
 
 
@@ -132,23 +154,95 @@ public class PetriNet {
 
         }
 
+        //now i have fired transition, input arcs, output arcs
+        //so I can add stuff to the process net
+
+
+        //todo it is not ok from here *******************************
+        //delete from here to next todo
+
+        //add transition
+        Transition t = new Transition();
+        t.setId("t"+processNetTransitionsCurrentId);
+        t.setLabel(firedTransition.getLabel());
+        t.setX(processNetCurrentX);
+        t.setY(processNetCurrentY);
+        processNet.transitions.add(t);
+
+        //update current values
+        processNetTransitionsCurrentId++;
+        processNetCurrentX +=40;
+        processNetCurrentY +=40;
+
+        //add places
+        //for each output arc add multiplicity times new place
+        for(Arc arc:outputArcs){
+            for(int i=0;i<arc.getMultiplicity();i++){
+                Place p = new Place();
+                p.setId("p"+processNetPlacesCurrentId);
+                //p.setLabel(arc.getDestinationId());
+                p.setLabel(getPlaceLabelById(arc.getDestinationId()));
+                p.setX(processNetCurrentX);
+                p.setY(processNetCurrentY);
+
+                processNet.places.add(p);
+
+                //add also arc between fired transition and new place
+                Arc a = new Arc();
+                a.setId("a"+processNetArcsCurrentId);
+                a.setSourceId(t.getId());
+                a.setDestinationId(p.getId());
+                a.setMultiplicity(1);
+                processNet.arcs.add(a);
+
+                //update vlaues
+                processNetPlacesCurrentId++;
+                processNetCurrentX+=40;
+                processNetCurrentY+=40;
+                processNetArcsCurrentId++;
+            }
+        }
+
+        //for each input arc add input arc to the process net from place with
+        for(Arc arc:inputArcs){
 
 
 
+        }
+
+
+
+
+        //todo I still need to add arcs from places to transitions in Process net
+
+
+
+        //todo it is not ok to here ********************************
+
+        return processNet;
 
 
     }
 
 
 
-    public void simulateTokenFlow(List<String> firedTransitions){
+    public PetriNet simulateTokenFlow(List<String> firedTransitions){
+
+        //returns process net calculated by simulating token flow
+
+        PetriNet processNet = new PetriNet();
+        processNet.transitions = new ArrayList<Transition>();
+        processNet.places = new ArrayList<Place>();
+        processNet.arcs = new ArrayList<Arc>();
 
         //changes the state of the petri net based on the sequence of fired transitions labels
         for(String transitionLabel : firedTransitions){
 
             //fire every fired transition from the sequence
-            fireTransition(transitionLabel);
+            processNet = fireTransition(transitionLabel,processNet);
         }
+
+        return processNet;
 
     }
 

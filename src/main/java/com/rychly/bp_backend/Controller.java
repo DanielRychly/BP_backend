@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import java.io.*;
 
@@ -34,12 +35,14 @@ import java.util.ArrayList;
 @CrossOrigin(origins = "http://localhost:4200")
 public class Controller {
 
+    public ArrayList<String> firedTransitions = new ArrayList<String>();
 
     public Controller() throws Exception {
-        clearLogFileAtStart("uploaded_log_file.txt");
+
+        //clearLogFileAtStart("uploaded_log_file.txt");
 
         //delete logstash sincedb
-        FileUtils.cleanDirectory(new File("C:\\Users\\rychl\\Desktop\\logstash-7.16.2-windows-x86_64\\logstash-7.16.2\\data\\plugins\\inputs\\file"));
+        //FileUtils.cleanDirectory(new File("C:\\Users\\rychl\\Desktop\\logstash-7.16.2-windows-x86_64\\logstash-7.16.2\\data\\plugins\\inputs\\file"));
 
     }
 
@@ -102,20 +105,15 @@ public class Controller {
         //inspired by https://www.baeldung.com/spring-multipartfile-to-file
 
 
-        //delete logstash sincedb
-        // C:\Users\rychl\Desktop\logstash-7.16.2-windows-x86_64\logstash-7.16.2\data\plugins\inputs\file
-
-
-        //FileUtils.cleanDirectory(new File("C:\\Users\\rychl\\Desktop\\logstash-7.16.2-windows-x86_64\\logstash-7.16.2\\data\\plugins\\inputs\\file"));
-
-
         if (multipartFile.isEmpty()) {
             return false;
         }
 
+
+
         File tmp = new File("src/main/resources/" + filename);
 
-        try(OutputStream os = new FileOutputStream(tmp,true)){
+        try(OutputStream os = new FileOutputStream(tmp)){
 
             os.write(multipartFile.getBytes());
 
@@ -126,22 +124,11 @@ public class Controller {
             return false;
         }
 
+
         return true;
     }
 
-    private boolean clearLogFileAtStart(String filename){
 
-        File tmp = new File("src/main/resources/" + filename);
-
-        try (PrintWriter p = new PrintWriter(new FileOutputStream(tmp))) {
-            p.println("");
-        } catch (FileNotFoundException e1) {
-            e1.printStackTrace();
-        }
-
-        return true;
-
-    }
 
     private boolean isIndexEmpty(String indexName) throws Exception{
 
@@ -300,6 +287,15 @@ public class Controller {
 
     }
 
+    public void marshal(PetriNet pn) throws JAXBException, IOException {
+
+
+        JAXBContext context = JAXBContext.newInstance(PetriNet.class);
+        Marshaller mar= context.createMarshaller();
+        mar.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+        mar.marshal(pn, new File("src/main/resources/processNet.xml"));
+    }
+
     @PostMapping("/uploadLogs")
     public FiredTransitionsResponse uploadLogs(@RequestParam("file") MultipartFile multipartFile, @RequestParam("caseName") String caseName) throws Exception{
 
@@ -333,6 +329,8 @@ public class Controller {
         //send fired to frontend
         ArrayList<Log> logs = extractLogs("logs",caseName);
         ArrayList<String> fired = extractFiredTransitions(logs);
+        this.firedTransitions = fired;
+
 
         //System.out.println("hits as json array");
         System.out.println("fired:");
@@ -355,17 +353,16 @@ public class Controller {
 
         //2. parse it - > create object of that petri net, use JAXB
         PetriNet originalPetriNet = unmarshall("src/main/resources/uploaded_petri_net_file.xml");
-        System.out.println("original petri net:");
-        System.out.println(originalPetriNet);
+        //System.out.println("original petri net:");
+        //System.out.println(originalPetriNet);
 
         //3. compute token flow and create process net object
-        ArrayList<String> test = new ArrayList<String>();
-        test.add("START");
-        originalPetriNet.simulateTokenFlow(test);
-        System.out.println("original petri net after computed token flow:");
-        System.out.println(originalPetriNet);
+        PetriNet processNet = originalPetriNet.simulateTokenFlow(this.firedTransitions);
+        //System.out.println("original petri net after computed token flow:");
+        //System.out.println(originalPetriNet);
 
         //4.create process net xml from object
+        marshal(processNet);
 
         //5. send process net xml to frontend for download
 
