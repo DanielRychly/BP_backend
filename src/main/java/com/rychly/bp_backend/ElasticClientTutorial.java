@@ -22,11 +22,11 @@ public class ElasticClientTutorial {
         RestClient restClient = RestClient.builder(
                 new HttpHost("localhost", 9200)).build();
         System.out.println("rest client created");
-// Create the transport with a Jackson mapper
+        // Create the transport with a Jackson mapper
         ElasticsearchTransport transport = new RestClientTransport(
                 restClient, new JacksonJsonpMapper());
         System.out.println("transport created");
-// And create the API client
+        // And create the API client
         ElasticsearchClient client = new ElasticsearchClient(transport);
         System.out.println("elastic client created");
 

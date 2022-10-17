@@ -7,6 +7,7 @@ import lombok.Setter;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlTransient;
 
 @Getter
 @Setter
@@ -18,6 +19,9 @@ public class Transition {
     private int x;
     private int y;
     private String label;
+
+    @XmlTransient
+    public String idOfTheOriginalTransition;
 
     @Override
     public String toString() {
