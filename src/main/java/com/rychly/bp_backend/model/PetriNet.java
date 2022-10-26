@@ -127,7 +127,7 @@ public class PetriNet {
 
         //add fired transition into the process net
         Transition transitionInProcessNet = new Transition();
-        transitionInProcessNet.setId("t"+processNetCurrentTransitionId);
+        transitionInProcessNet.setId("t"+processNetCurrentTransitionId++);
         transitionInProcessNet.setX(0);
         transitionInProcessNet.setY(0);
         transitionInProcessNet.setLabel(firedTransition.getLabel());
