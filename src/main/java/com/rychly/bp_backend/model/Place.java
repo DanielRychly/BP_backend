@@ -28,6 +28,9 @@ public class Place {
     @XmlTransient
     public String idOfTheOriginPlace;
 
+    @XmlTransient
+    public boolean wasVisited = false;  //bc algo for nice placement
+
     @Override
     public String toString() {
         return "Place{" +

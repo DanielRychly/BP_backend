@@ -23,6 +23,10 @@ public class Transition {
     @XmlTransient
     public String idOfTheOriginalTransition;
 
+    @XmlTransient
+    public boolean wasVisited = false;  //bc algo for nice placement
+
+
     @Override
     public String toString() {
         return "Transition{" +

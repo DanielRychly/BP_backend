@@ -3,13 +3,12 @@ package com.rychly.bp_backend.model;
 import lombok.Getter;
 import lombok.Setter;
 
+
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlTransient;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 @Setter
 @XmlRootElement(name = "document")
@@ -32,6 +31,17 @@ public class PetriNet {
 
     @XmlTransient
     private int processNetCurrentArcId = 1;
+
+    @XmlTransient
+    private final int PIXEL_CONSTANT = 6;
+
+    @XmlTransient
+    private int currentX = 10 * PIXEL_CONSTANT;
+
+    @XmlTransient
+    private int currentY = 10 * PIXEL_CONSTANT;
+
+
 
 
     public String getPlaceLabelById(String id){
@@ -57,9 +67,6 @@ public class PetriNet {
             }
         }
 
-        //logToAuxilirayLog("fired " + firedTransition.getId() + " label " + firedTransition.getLabel() + " | process net transition id: t" + this.processNetTransitionsCurrentId);
-       // this.processNetTransitionsCurrentId++;
-
         //get input arcss
         List<Arc> inputArcs = new ArrayList<Arc>();
         for(Arc a: this.arcs){
@@ -84,26 +91,13 @@ public class PetriNet {
             for(Place p: this.places){
                 if(p.getId().equals(labelOfInputPlace)){
                     p.setTokens(p.getTokens()-multiplicity);
-
-                    /*
-                    for (int j=0;j<multiplicity;j++){
-                        logToAuxilirayLog("consumed (" +firedTransition.getId()+") " + "1 from " + p.getId());
-
-                    }
-                    */
-
-
-
                 }
             }
-
-
-
-
         }
 
         //produce tokens into the output place, number of tokens is multiplicity of output arc
         for(Arc a: outputArcs){
+
             String labelOfOutputPlace = a.getDestinationId();
             int multiplicity = a.getMultiplicity();
 
@@ -111,15 +105,9 @@ public class PetriNet {
                 if(p.getId().equals(labelOfOutputPlace)){
                     p.setTokens(p.getTokens()+multiplicity);
 
-                    for (int j=0;j<multiplicity;j++){
-                        //logToAuxilirayLog("produced (" +firedTransition.getId()+") " + "1 to " + p.getId() + " | process net place id: p"+this.processNetPlacesCurrentId);
-                        //processNetPlacesCurrentId++;
-
-                    }
                 }
             }
         }
-
 
         //**********************
         //process net stuff
@@ -130,6 +118,7 @@ public class PetriNet {
         transitionInProcessNet.setId("t"+processNetCurrentTransitionId++);
         transitionInProcessNet.setX(0);
         transitionInProcessNet.setY(0);
+
         transitionInProcessNet.setLabel(firedTransition.getLabel());
         transitionInProcessNet.setIdOfTheOriginalTransition(firedTransition.getId());
 
@@ -181,8 +170,10 @@ public class PetriNet {
                 Place newPlaceInProcessNet = new Place();
                 newPlaceInProcessNet.setId("p"+this.processNetPlacesCurrentId++);
                 newPlaceInProcessNet.setLabel(a.getDestinationId());
-                newPlaceInProcessNet.setX(0);   //algo for nice placement
-                newPlaceInProcessNet.setY(0);   //algo for nice placement
+                newPlaceInProcessNet.setX(0);
+                newPlaceInProcessNet.setY(0);
+
+
                 newPlaceInProcessNet.setTokens(0);
                 newPlaceInProcessNet.setIdOfTheOriginPlace(a.getDestinationId());
 
@@ -200,22 +191,16 @@ public class PetriNet {
 
             }
 
+
         }
+
+
 
         return processNet;
 
     }
 
     public PetriNet simulateTokenFlow(List<String> firedTransitions){
-
-        /*
-
-        //clear aux log
-        try{
-            this.clearAuxilirayLog();
-        }catch (Exception e)   {
-
-        }*/
 
 
         //returns process net calculated by simulating token flow
@@ -234,6 +219,9 @@ public class PetriNet {
             //fire every fired transition from the sequence
             processNet = fireTransition(transitionLabel,processNet);
         }
+
+        //dfs
+        depthFirstTraversal();
 
         return processNet;
 
@@ -354,93 +342,113 @@ public class PetriNet {
     }
 
 
-    public void clearAuxilirayLog() throws IOException {
-        try{
-            new FileWriter("auxiliray_log.txt", false).close();
-        }catch (IOException e){
 
-        }
+    //todo ended here DFS as algo for nice placement
 
-    }
+    public void depthFirstTraversal() {
+
+        Place root = this.places.get(0);
+        PetriNet net = this;
+
+        Set<Object> visited = new LinkedHashSet<Object>();
+        Stack<Object> stack = new Stack<Object>();
+
+        stack.push(root);
 
 
-    /*
 
-    public void parseAuxilirayLog(){
 
-        //file read inspired by https://www.javatpoint.com/how-to-read-file-line-by-line-in-java
 
-        try
-        {
-            File file = new File("auxiliray_log.txt");    //creates a new file instance
-            FileReader fr = new FileReader(file);   //reads the file
-            BufferedReader br = new BufferedReader(fr);  //creates a buffering character input stream
-            StringBuffer sb = new StringBuffer();    //constructs a string buffer with no characters
-            String line;
-            while((line=br.readLine())!=null)
-            {
-                //todo parse aux log here
-                //create maps
-                String[] words = line.split("");
+        while (!stack.isEmpty()) {
 
-                switch (words[0]) {
+            Object node = stack.pop();
 
-                    case "fired":
-                        break;
+            if (!visited.contains(node)) {
 
-                    case "consumed":
-                        break;
+                if(node instanceof Place){
 
-                    case "produced":
-                        break;
+                    visited.add(((Place)node));
 
+                    for (Object t : net.getAdjNodes(node)) {
+                        stack.push(((Transition)t));
+                    }
+
+
+                    //add coordinates to node
+
+                } else if (node instanceof Transition) {
+
+                    visited.add(((Transition)node));
+
+                    for (Object p : net.getAdjNodes(node)) {
+                        stack.push(((Place)p));
+                    }
+
+                    //add coordinates to node
 
                 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
             }
-            fr.close();    //closes the stream and release the resources
-           }
-        catch(IOException e)
-        {
-            e.printStackTrace();
         }
-    }
 
-    public void logToAuxilirayLog(String log) {
-
-        //new idea
-        try {
-
-
-            FileWriter fw = new FileWriter("auxiliray_log.txt", true);
-            BufferedWriter bw = new BufferedWriter(fw);
-            bw.write(log);
-            bw.newLine();
-            bw.close();
-
-
-            //System.out.println("Successfully wrote to the file.");
-        } catch (IOException e) {
-            System.out.println("An error occurred while writing to the file.");
-            e.printStackTrace();
-        }
 
     }
 
-     */
+    public void addCoordinatesToNode(Object node, int x, int y){}
+
+    public List<Object> getAdjNodes(Object node){
+
+
+        List<Object> adjNodes = new ArrayList<Object>();
+
+        if(node instanceof Place){
+            //get only one transition
+            for(Arc a:this.arcs){
+                if(a.getSourceId().equals(((Place) node).getId())){
+
+                    //add transition to adj nodes
+                    Transition adjNode = null;
+                    for (Transition t:this.transitions){
+                        if(t.getId().equals(a.getDestinationId())){
+                            adjNode = t;
+                            adjNodes.add(adjNode);
+                            break;
+                        }
+                    }
+
+
+                }
+            }
+
+        }
+        else if(node instanceof Transition){
+
+            //get all places
+            for(Arc a:this.arcs){
+
+                if(a.getSourceId().equals(((Transition) node).getId())){
+
+                    //add place to adj nodes
+                    Place adjNode = null;
+                    for (Place p:this.places){
+                        if(p.getId().equals(a.getDestinationId())){
+                            adjNode = p;
+                            adjNodes.add(adjNode);
+
+                        }
+                    }
+
+
+                }
+            }
+
+        }
+
+        return adjNodes;
+
+    }
+
+
 
 }
 
