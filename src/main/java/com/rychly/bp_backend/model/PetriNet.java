@@ -32,14 +32,8 @@ public class PetriNet {
     @XmlTransient
     private int processNetCurrentArcId = 1;
 
-    @XmlTransient
-    private final int PIXEL_CONSTANT = 6;
 
-    @XmlTransient
-    private int currentX = 10 * PIXEL_CONSTANT;
 
-    @XmlTransient
-    private int currentY = 10 * PIXEL_CONSTANT;
 
 
 
@@ -119,6 +113,7 @@ public class PetriNet {
         transitionInProcessNet.setX(0);
         transitionInProcessNet.setY(0);
 
+
         transitionInProcessNet.setLabel(firedTransition.getLabel());
         transitionInProcessNet.setIdOfTheOriginalTransition(firedTransition.getId());
 
@@ -165,6 +160,9 @@ public class PetriNet {
             //add multiplicity of arc between transitionInProcessNet and new places
             //add new places
 
+
+
+
             for (int i=0;i<a.getMultiplicity();i++){
 
                 Place newPlaceInProcessNet = new Place();
@@ -192,7 +190,10 @@ public class PetriNet {
             }
 
 
+
         }
+
+
 
 
 
@@ -221,7 +222,7 @@ public class PetriNet {
         }
 
         //dfs
-        depthFirstTraversal();
+        processNet = DFSTraversalToAddCoordinates(processNet);
 
         return processNet;
 
@@ -258,6 +259,7 @@ public class PetriNet {
                     place.setId("p"+processNetPlacesCurrentId++);
                     place.setX(0); //get algo for nice placing of the elements
                     place.setY(0); //get algo for nice placing of the elements
+
                     place.setLabel(p.getLabel());
                     place.setTokens(1);
                     place.setIdOfTheOriginPlace(p.getId());
@@ -344,20 +346,28 @@ public class PetriNet {
 
 
     //todo ended here DFS as algo for nice placement
+    //deprecated
+    public PetriNet DFSTraversalToAddCoordinates(PetriNet processNet) {
 
-    public void depthFirstTraversal() {
 
-        Place root = this.places.get(0);
-        PetriNet net = this;
+        //todo
+        //README
+        //each node must remember the parent node coordinates
+        //and based on them find out if the next spot to right
+        //is occupied or not, if so then add to the Y in loop
+        //parent x andy y must be set during .... when??? fml
+
+        final int PIXEL_CONSTANT = 7;
+        int currentX = 10 * PIXEL_CONSTANT;
+        int currentY = 10 * PIXEL_CONSTANT;
+
+        Place root = processNet.places.get(0);
 
         Set<Object> visited = new LinkedHashSet<Object>();
         Stack<Object> stack = new Stack<Object>();
+        ArrayList<Point> occupied = new ArrayList<>();
 
         stack.push(root);
-
-
-
-
 
         while (!stack.isEmpty()) {
 
@@ -365,32 +375,59 @@ public class PetriNet {
 
             if (!visited.contains(node)) {
 
+                //visiting new node
+
                 if(node instanceof Place){
 
                     visited.add(((Place)node));
 
-                    for (Object t : net.getAdjNodes(node)) {
+                    for (Object t : processNet.getAdjNodes(node)) {
+
+
+
+
                         stack.push(((Transition)t));
                     }
 
 
+                } else if (node instanceof Transition) {
+
                     //add coordinates to node
 
-                } else if (node instanceof Transition) {
 
                     visited.add(((Transition)node));
 
-                    for (Object p : net.getAdjNodes(node)) {
+                    for (Object p : processNet.getAdjNodes(node)) {
+
+
                         stack.push(((Place)p));
                     }
 
-                    //add coordinates to node
+
+
+
+
+
 
                 }
 
             }
         }
 
+        return processNet;
+
+    }
+
+
+    public boolean isPointInTheArray(ArrayList<Point> list, Point point){
+
+
+        for (Point p:list) {
+            if(p.getX()==point.getX() && p.getY() == point.getY()){
+               return true;
+            }
+        }
+        return false;
 
     }
 

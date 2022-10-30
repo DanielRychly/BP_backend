@@ -31,6 +31,12 @@ public class Place {
     @XmlTransient
     public boolean wasVisited = false;  //bc algo for nice placement
 
+
+    @XmlTransient
+    public int parentX;
+    @XmlTransient
+    public int parentY;
+
     @Override
     public String toString() {
         return "Place{" +
