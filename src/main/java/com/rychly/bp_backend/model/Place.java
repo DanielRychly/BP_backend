@@ -33,9 +33,8 @@ public class Place {
 
 
     @XmlTransient
-    public int parentX;
-    @XmlTransient
-    public int parentY;
+    public Point parentLocation;
+
 
     @Override
     public String toString() {

@@ -27,9 +27,7 @@ public class Transition {
     public boolean wasVisited = false;  //bc algo for nice placement
 
     @XmlTransient
-    public int parentX;
-    @XmlTransient
-    public int parentY;
+    public Point parentLocation;
 
     @Override
     public String toString() {

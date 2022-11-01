@@ -222,7 +222,8 @@ public class PetriNet {
         }
 
         //dfs
-        processNet = DFSTraversalToAddCoordinates(processNet);
+        //processNet = DFSTraversalToAddCoordinates(processNet);
+        processNet = BFSTraversalToAddCoordinates(processNet);
 
         return processNet;
 
@@ -344,7 +345,7 @@ public class PetriNet {
     }
 
 
-
+/*
     //todo ended here DFS as algo for nice placement
     //deprecated
     public PetriNet DFSTraversalToAddCoordinates(PetriNet processNet) {
@@ -412,6 +413,94 @@ public class PetriNet {
                 }
 
             }
+        }
+
+        return processNet;
+
+    }
+*/
+
+    public PetriNet BFSTraversalToAddCoordinates(PetriNet processNet){
+
+        //each node must remember the parent node coordinates
+        //and based on them find out if the next spot to right
+        //is occupied or not, if so then add to the Y in loop
+        //till you find first free spot
+
+        final int PIXEL_CONSTANT = 7;
+        int currentX = 10 * PIXEL_CONSTANT;
+        int currentY = 10 * PIXEL_CONSTANT;
+
+        Queue<Object> queue = new LinkedList<Object>();
+        ArrayList<Point> occupied = new ArrayList<>();
+        Set<Object> visited = new LinkedHashSet<Object>();
+
+        Place root = processNet.places.get(0);
+        root.setParentLocation(new Point(currentX,currentY));
+        occupied.add(new Point(currentX,currentY));
+
+        queue.offer(root);  //add root to the queue
+
+        while (!queue.isEmpty()) {
+
+            //Object node = queue.pop();
+            Object node = queue.poll();
+
+
+
+            if (!visited.contains(node)){
+
+                if(node instanceof Place){
+
+                    //add location to the node here based on the parent location
+                    currentX = ((Place) node).getParentLocation().getX();
+                    currentY = ((Place) node).getParentLocation().getY();
+                    currentX +=10* PIXEL_CONSTANT;
+
+                    while(isPointInTheArray(occupied,new Point(currentX,currentY))){
+                        currentY += 10 * PIXEL_CONSTANT;
+                    }
+
+                    ((Place) node).setX(currentX);
+                    ((Place) node).setY(currentY);
+                    occupied.add(new Point(currentX,currentY));
+
+                    for (Object t : processNet.getAdjNodes(node)) {
+
+                        //add parent location to each adjacent vertex
+                        ((Transition)t).setParentLocation(new Point(currentX,currentY));
+                        queue.offer(((Transition)t));
+                    }
+
+
+                }
+                else if (node instanceof Transition) {
+
+                    //add location to the node here based on the parent location
+                    currentX = ((Transition) node).getParentLocation().getX();
+                    currentY = ((Transition) node).getParentLocation().getY();
+                    currentX +=10 * PIXEL_CONSTANT;
+
+                    while(isPointInTheArray(occupied,new Point(currentX,currentY))){
+                        currentY += 10 * PIXEL_CONSTANT;
+                    }
+
+                    ((Transition) node).setX(currentX);
+                    ((Transition) node).setY(currentY);
+                    occupied.add(new Point(currentX,currentY));
+
+
+
+                    for (Object p : processNet.getAdjNodes(node)) {
+
+                        //add parent location to each adjacent vertex
+                        ((Place)p).setParentLocation(new Point(currentX,currentY));
+                        queue.offer(((Place)p));
+                    }
+                }
+
+            }
+            visited.add(node);
         }
 
         return processNet;
