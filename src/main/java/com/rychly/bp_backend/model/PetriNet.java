@@ -33,22 +33,6 @@ public class PetriNet {
     private int processNetCurrentArcId = 1;
 
 
-
-
-
-
-
-    public String getPlaceLabelById(String id){
-        String label = null;
-        for(Place p: this.places){
-            if(p.getId().equals(id)){
-                label = p.getLabel();
-            }
-
-        }
-        return label;
-    }
-
     public PetriNet fireTransition(String transitionLabel, PetriNet processNet){
 
 
@@ -344,82 +328,6 @@ public class PetriNet {
         return outputArcs;
     }
 
-
-/*
-    //todo ended here DFS as algo for nice placement
-    //deprecated
-    public PetriNet DFSTraversalToAddCoordinates(PetriNet processNet) {
-
-
-        //todo
-        //README
-        //each node must remember the parent node coordinates
-        //and based on them find out if the next spot to right
-        //is occupied or not, if so then add to the Y in loop
-        //parent x andy y must be set during .... when??? fml
-
-        final int PIXEL_CONSTANT = 7;
-        int currentX = 10 * PIXEL_CONSTANT;
-        int currentY = 10 * PIXEL_CONSTANT;
-
-        Place root = processNet.places.get(0);
-
-        Set<Object> visited = new LinkedHashSet<Object>();
-        Stack<Object> stack = new Stack<Object>();
-        ArrayList<Point> occupied = new ArrayList<>();
-
-        stack.push(root);
-
-        while (!stack.isEmpty()) {
-
-            Object node = stack.pop();
-
-            if (!visited.contains(node)) {
-
-                //visiting new node
-
-                if(node instanceof Place){
-
-                    visited.add(((Place)node));
-
-                    for (Object t : processNet.getAdjNodes(node)) {
-
-
-
-
-                        stack.push(((Transition)t));
-                    }
-
-
-                } else if (node instanceof Transition) {
-
-                    //add coordinates to node
-
-
-                    visited.add(((Transition)node));
-
-                    for (Object p : processNet.getAdjNodes(node)) {
-
-
-                        stack.push(((Place)p));
-                    }
-
-
-
-
-
-
-
-                }
-
-            }
-        }
-
-        return processNet;
-
-    }
-*/
-
     public PetriNet BFSTraversalToAddCoordinates(PetriNet processNet){
 
         //each node must remember the parent node coordinates
@@ -519,8 +427,6 @@ public class PetriNet {
         return false;
 
     }
-
-    public void addCoordinatesToNode(Object node, int x, int y){}
 
     public List<Object> getAdjNodes(Object node){
 

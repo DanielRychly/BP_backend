@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.configurationprocessor.json.JSONArray;
 import org.springframework.boot.configurationprocessor.json.JSONObject;
 //import org.json.JSONObject;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,15 +21,22 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletResponse;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import java.io.*;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 
-
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import org.springframework.mock.web.MockMultipartFile;
 
 
 
@@ -37,16 +46,14 @@ public class Controller {
 
     public ArrayList<String> firedTransitions = new ArrayList<String>();
 
-    public Controller() throws Exception {
-
-        //clearLogFileAtStart("uploaded_log_file.txt");
-
-        //delete logstash sincedb
-        //FileUtils.cleanDirectory(new File("C:\\Users\\rychl\\Desktop\\logstash-7.16.2-windows-x86_64\\logstash-7.16.2\\data\\plugins\\inputs\\file"));
-
+    @Autowired
+    public Controller(FileService fileService) {
+        this.fileService = fileService;
     }
 
     private final OkHttpClient client = new OkHttpClient();
+
+    private final FileService fileService;
 
     private boolean indexExists(String indexName) throws Exception{
 
@@ -369,6 +376,14 @@ public class Controller {
 
         return "OK";
 
+    }
+
+    @GetMapping(value = "/downloadProcessNet", produces = "text/xml; charset=utf-8")
+    @ResponseStatus(HttpStatus.OK)
+    public Resource getFileFromFileSystem (HttpServletResponse response) {
+
+        //inspired by https://roufid.com/angular-download-file-spring-boot/
+        return fileService.getFile(response);
     }
 
 

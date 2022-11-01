@@ -132,6 +132,12 @@
             <version>31.1-jre</version>
         </dependency>
 
+        <!--bc mockmultipartfile-->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
+        </dependency>
+
 
     </dependencies>
 
