@@ -12,11 +12,13 @@ import com.rychly.bp_backend.comparators.Log;
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.RestClient;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 
 public class ElasticClientTutorial {
 
-    public static void main(String args[]){
+
+    public static ElasticsearchClient initializeElasticsearchClient(){
 
         // Create the low-level client
         RestClient restClient = RestClient.builder(
@@ -30,18 +32,23 @@ public class ElasticClientTutorial {
         ElasticsearchClient client = new ElasticsearchClient(transport);
         System.out.println("elastic client created");
 
+        return client;
 
+    }
+
+
+    public static List<Hit<Object>> getLogsFromIndex(ElasticsearchClient client){
 
         try{
-            SearchResponse<Log> response = client.search(s -> s
+            SearchResponse<Object> response = client.search(s -> s
                             .index("logs")
                             .query(q -> q
                                     .match(t -> t
                                             .field("case_id")
-                                            .query("ordes-case-1")
+                                            .query("sample-2-case-1")
                                     )
                             ),
-                    Log.class
+                    Object.class
             );
 
             TotalHits total = response.hits().total();
@@ -52,20 +59,54 @@ public class ElasticClientTutorial {
                 System.out.println("There are more than " + total.value() + " results");
             }
 
-            List<Hit<Log>> hits = response.hits().hits();
-            for (Hit<Log> hit: hits) {
-                Log log = hit.source();
-                System.out.println("Found log, transition - " + log.getFired_transition_id() + ", score " + hit.score());
+            List<Hit<Object>> hits = response.hits().hits();
+
+            for (Hit<Object> hit: hits) {
+
+                //Object o = hit.source();
+                LinkedHashMap<String,String> log = (LinkedHashMap<String,String>) hit.source(); //this is how you get the log data
+
+                System.out.println(log.get("fired_transition_id"));
+                System.out.println(log.get("case_id"));
+                // System.out.println("Found log, transition - " + o.getFired_transition_id() + ", score " + hit.score());
             }
 
             System.out.println(response.hits().hits());
+            return hits;
 
         }
         catch(Exception e)
         {
             e.printStackTrace();
-            //System.out.println("Exception");
+
+
+
         }
+        return null;
+
+
+
+
+    }
+    public static void main(String args[]){
+
+
+        ElasticsearchClient client = initializeElasticsearchClient();
+
+        List<Hit<Object>> hits = getLogsFromIndex(client);
+
+
+        for (Hit<Object> hit: hits) {
+
+            //Object o = hit.source();
+            LinkedHashMap<String,String> log = (LinkedHashMap<String,String>) hit.source();
+
+            System.out.println(log.get("fired_transition_id"));
+            System.out.println(log.get("case_id"));
+            // System.out.println("Found log, transition - " + o.getFired_transition_id() + ", score " + hit.score());
+        }
+
+
 
     }
 }
