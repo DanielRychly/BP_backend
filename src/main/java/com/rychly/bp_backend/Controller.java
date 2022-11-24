@@ -1,5 +1,6 @@
 package com.rychly.bp_backend;
 
+import com.rychly.bp_backend.ModelerModel.Model;
 import com.rychly.bp_backend.comparators.Log;
 import com.rychly.bp_backend.comparators.logComparator;
 import com.rychly.bp_backend.model.PetriNet;
@@ -304,6 +305,7 @@ public class Controller {
     }
 
     @PostMapping("/uploadLogs")
+    @CrossOrigin(origins = "http://localhost:4200") //does not have to be here
     public FiredTransitionsResponse uploadLogs(@RequestParam("file") MultipartFile multipartFile, @RequestParam("caseName") String caseName) throws Exception{
 
         //0. print caseName
@@ -386,7 +388,17 @@ public class Controller {
         return fileService.getFile(response);
     }
 
+    @PostMapping("/receiveAndPrintModel")
+    public String receiveAndPrintModel(@org.springframework.web.bind.annotation.RequestBody Model model ){
+        System.out.println("going to print model:");
+        System.out.println(model);
+        return "OK";
+    }
 
+    @GetMapping("/test")
+    public void test(){
+        System.out.println("Test request");
+    }
 
 
 }
