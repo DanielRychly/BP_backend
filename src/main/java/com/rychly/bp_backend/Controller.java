@@ -37,6 +37,15 @@ import java.util.ArrayList;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Scanner;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+
 import org.springframework.mock.web.MockMultipartFile;
 
 
@@ -46,6 +55,8 @@ import org.springframework.mock.web.MockMultipartFile;
 public class Controller {
 
     public ArrayList<String> firedTransitions = new ArrayList<String>();
+
+    public HashMap<String,ArrayList<String>> caseToFiredTransitions = new HashMap<String,ArrayList<String>>();
 
     @Autowired
     public Controller(FileService fileService) {
@@ -126,6 +137,7 @@ public class Controller {
             os.write(multipartFile.getBytes());
 
 
+
         } catch (IOException e) {
 
             e.printStackTrace();
@@ -136,7 +148,62 @@ public class Controller {
         return true;
     }
 
+    private ArrayList<String> readLogFileLineByLineAndCreateMapping(String modelId){
 
+
+        //inspired by https://www.javatpoint.com/how-to-read-file-line-by-line-in-java        java read file
+        //inspired by https://www.w3schools.com/java/java_regex.asp                           java regexp
+        //inspired by https://www.freeformatter.com/java-regex-tester.html#before-output      testing regex pattern on logs
+
+
+        Pattern pattern = Pattern.compile("^.*created for petri net with id ." + modelId +".*$", Pattern.CASE_INSENSITIVE);
+        ArrayList<String> matchedLines = new ArrayList<>();
+
+
+        try
+        {
+
+            System.out.println("printing the logs");
+            //the file to be opened for reading
+            FileInputStream fis=new FileInputStream("src/main/resources/uploaded_log_file.txt");
+            Scanner sc=new Scanner(fis);    //file to be scanned
+            //returns true if there is another line to read
+            while(sc.hasNextLine())
+            {
+
+                String line = sc.nextLine();
+
+                Matcher matcher = pattern.matcher(line);
+
+                boolean matchFound = matcher.find();
+
+                if(matchFound) {
+                    System.out.println(line);
+                    matchedLines.add(line);
+                } else {
+
+                }
+
+
+                //System.out.println(sc.nextLine());      //returns the line that was skipped
+            }
+            sc.close();     //closes the scanner
+        }
+        catch(IOException e)
+        {
+            e.printStackTrace();
+        }
+
+
+        ArrayList<String> caseNames = new ArrayList<String>();
+        System.out.println("printing case names for the net");
+        for (String log:matchedLines){
+            //System.out.println(log.split("Case ")[1].split(" ")[0]);
+            caseNames.add(log.split("Case ")[1].split(" ")[0]);
+
+        }
+        return caseNames;
+    }
 
     private boolean isIndexEmpty(String indexName) throws Exception{
 
@@ -295,22 +362,61 @@ public class Controller {
 
     }
 
-    public void marshal(PetriNet pn) throws JAXBException, IOException {
+    public void marshal(PetriNet pn,String caseName) throws JAXBException, IOException {
 
 
         JAXBContext context = JAXBContext.newInstance(PetriNet.class);
         Marshaller mar= context.createMarshaller();
         mar.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
-        mar.marshal(pn, new File("src/main/resources/processNet.xml"));
+        mar.marshal(pn, new File("src/main/resources/processNet_case-" + caseName + ".xml"));
     }
 
+
+    public void zipFiles(ArrayList<String> caseNames){
+
+        try{
+
+
+            String fileName;
+
+            final List<String> srcFiles = new ArrayList<>();
+            for (String cn: caseNames){
+                fileName = "src/main/resources/processNet_case-"+cn+".xml";
+                srcFiles.add(fileName);
+            }
+
+            final FileOutputStream fos = new FileOutputStream("src/main/resources/compressed.zip");
+            ZipOutputStream zipOut = new ZipOutputStream(fos);
+
+            for (String srcFile : srcFiles) {
+                File fileToZip = new File(srcFile);
+                FileInputStream fis = new FileInputStream(fileToZip);
+                ZipEntry zipEntry = new ZipEntry(fileToZip.getName());
+                zipOut.putNextEntry(zipEntry);
+
+                byte[] bytes = new byte[1024];
+                int length;
+                while((length = fis.read(bytes)) >= 0) {
+                    zipOut.write(bytes, 0, length);
+                }
+                fis.close();
+            }
+
+            zipOut.close();
+            fos.close();
+        }catch (Exception e){
+           System.out.println(e.getMessage());
+        }
+    }
     @PostMapping("/uploadLogs")
     @CrossOrigin(origins = "http://localhost:4200") //does not have to be here
-    public FiredTransitionsResponse uploadLogs(@RequestParam("file") MultipartFile multipartFile, @RequestParam("caseName") String caseName) throws Exception{
+    public FiredTransitionsResponse uploadLogs(@RequestParam("file") MultipartFile multipartFile, @RequestParam("caseName") String caseName, @RequestParam("modelId") String modelId) throws Exception{
 
-        //0. print caseName
+        //0. print caseName and model id
         System.out.println("Case name: ");
         System.out.println(caseName);
+        System.out.println("Model id: ");
+        System.out.println(modelId);
 
         //1. check index existence, then either delete + create or only create
         if (indexExists("logs")){
@@ -327,6 +433,8 @@ public class Controller {
         //4. append logs to log file
         saveMultipartFile(multipartFile,"uploaded_log_file.txt");
 
+        ArrayList<String> caseNamesForTheModel = readLogFileLineByLineAndCreateMapping(modelId);
+
         //here the logstash should be working
         //checking, if thh index is empty - then sleep
         while(isIndexEmpty("logs")){
@@ -335,15 +443,30 @@ public class Controller {
             Thread.sleep(200);
         }
 
+        //new process for mode cases
+
+        for (String cn:caseNamesForTheModel){
+
+            ArrayList<Log> logs = extractLogs("logs",cn);
+            ArrayList<String> fired = extractFiredTransitions(logs);
+            this.caseToFiredTransitions.put(cn,fired);
+
+        }
+
+        System.out.println(caseToFiredTransitions.toString());
+
+
+
+
+        //OLD process for one case id
         //send fired to frontend
         ArrayList<Log> logs = extractLogs("logs",caseName);
         ArrayList<String> fired = extractFiredTransitions(logs);
         this.firedTransitions = fired;
 
-
         //System.out.println("hits as json array");
-        System.out.println("fired:");
-        System.out.println(fired);
+        //System.out.println("fired:");
+        //System.out.println(fired);
 
         return new FiredTransitionsResponse(fired.toString());
 
@@ -351,8 +474,9 @@ public class Controller {
         //return null;
 
     }
-
+/*
     @PostMapping("/uploadPetriNet")
+    @Deprecated     //working for one case-id
     public String uploadPetriNet(@RequestParam("file") MultipartFile multipartFile) throws Exception{
 
 
@@ -379,13 +503,61 @@ public class Controller {
         return "OK";
 
     }
+*/
 
+    @PostMapping("/uploadPetriNet")
+    public String uploadPetriNet(@RequestParam("file") MultipartFile multipartFile) throws Exception{
+
+
+
+        //1. save original net xml file
+        saveMultipartFile(multipartFile,"uploaded_petri_net_file.xml");
+
+        for (String caseName:this.caseToFiredTransitions.keySet()){
+            //2. parse it - > create object of that petri net, use JAXB
+            PetriNet originalPetriNet = unmarshall("src/main/resources/uploaded_petri_net_file.xml");
+            PetriNet processNet = originalPetriNet.simulateTokenFlow(this.caseToFiredTransitions.get(caseName));
+            marshal(processNet,caseName);
+
+        }
+
+        //lazy convert of keyset to array list of strings
+        ArrayList<String> caseNames = new ArrayList<>();
+        for (String cn:this.caseToFiredTransitions.keySet()){
+            caseNames.add(cn);
+        }
+
+        //zip files
+        zipFiles(caseNames);
+
+
+
+        return "OK";
+
+    }
+
+
+    /*
     @GetMapping(value = "/downloadProcessNet", produces = "text/xml; charset=utf-8")
     @ResponseStatus(HttpStatus.OK)
+    @Deprecated   //but working
     public Resource getFileFromFileSystem (HttpServletResponse response) {
 
         //inspired by https://roufid.com/angular-download-file-spring-boot/
         return fileService.getFile(response);
+    }
+    */
+
+
+    @GetMapping(value = "/downloadProcessNet")
+    @ResponseStatus(HttpStatus.OK)
+    @CrossOrigin(origins = "http://localhost:4200")
+    public Resource getFileFromFileSystem (HttpServletResponse response) {
+
+        //inspired by https://roufid.com/angular-download-file-spring-boot/
+        return fileService.getFile(response);
+
+
     }
 
     @PostMapping("/receiveAndPrintModel")
