@@ -222,8 +222,6 @@ public class PetriNet {
                 '}';
     }
 
-
-    //add initial places
     public PetriNet addInitialPlacesToProcessNet(PetriNet processNet){
 
         //find place with token/s

@@ -1,6 +1,6 @@
 package com.rychly.bp_backend;
 
-import com.rychly.bp_backend.ModelerModel.Model;
+
 import com.rychly.bp_backend.comparators.Log;
 import com.rychly.bp_backend.comparators.logComparator;
 import com.rychly.bp_backend.model.PetriNet;
@@ -28,27 +28,14 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import java.io.*;
-
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
-
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-
-import org.springframework.mock.web.MockMultipartFile;
-
-
 
 @RestController
 @CrossOrigin(origins = "http://localhost:4200")
@@ -71,18 +58,13 @@ public class Controller {
 
         Request request = new Request.Builder().url("http://localhost:9200/"+indexName+"/").head().build();
         Response response = client.newCall(request).execute();
-
         boolean success = response.isSuccessful();
-
         if(success){
             System.out.println("Index exists");
-
         }else{
             System.out.println("Index does not exist");
-
         }
         response.body().close();
-
         return success;
     }
 
@@ -455,55 +437,15 @@ public class Controller {
 
         System.out.println(caseToFiredTransitions.toString());
 
-
-
-
-        //OLD process for one case id
+        //OLD process for one case id - TODO remove
         //send fired to frontend
         ArrayList<Log> logs = extractLogs("logs",caseName);
         ArrayList<String> fired = extractFiredTransitions(logs);
         this.firedTransitions = fired;
 
-        //System.out.println("hits as json array");
-        //System.out.println("fired:");
-        //System.out.println(fired);
-
         return new FiredTransitionsResponse(fired.toString());
 
-        //return fired;
-        //return null;
-
     }
-/*
-    @PostMapping("/uploadPetriNet")
-    @Deprecated     //working for one case-id
-    public String uploadPetriNet(@RequestParam("file") MultipartFile multipartFile) throws Exception{
-
-
-
-        //1. save original net xml file
-        saveMultipartFile(multipartFile,"uploaded_petri_net_file.xml");
-
-        //2. parse it - > create object of that petri net, use JAXB
-        PetriNet originalPetriNet = unmarshall("src/main/resources/uploaded_petri_net_file.xml");
-        //System.out.println("original petri net:");
-        //System.out.println(originalPetriNet);
-
-        //3. compute token flow and create process net object
-        PetriNet processNet = originalPetriNet.simulateTokenFlow(this.firedTransitions);
-        //System.out.println("original petri net after computed token flow:");
-        //System.out.println(originalPetriNet);
-
-        //4.create process net xml from object
-        marshal(processNet);
-
-        //5. send process net xml to frontend for download
-
-
-        return "OK";
-
-    }
-*/
 
     @PostMapping("/uploadPetriNet")
     public String uploadPetriNet(@RequestParam("file") MultipartFile multipartFile) throws Exception{
@@ -530,24 +472,9 @@ public class Controller {
         //zip files
         zipFiles(caseNames);
 
-
-
         return "OK";
 
     }
-
-
-    /*
-    @GetMapping(value = "/downloadProcessNet", produces = "text/xml; charset=utf-8")
-    @ResponseStatus(HttpStatus.OK)
-    @Deprecated   //but working
-    public Resource getFileFromFileSystem (HttpServletResponse response) {
-
-        //inspired by https://roufid.com/angular-download-file-spring-boot/
-        return fileService.getFile(response);
-    }
-    */
-
 
     @GetMapping(value = "/downloadProcessNet")
     @ResponseStatus(HttpStatus.OK)
@@ -557,20 +484,9 @@ public class Controller {
         //inspired by https://roufid.com/angular-download-file-spring-boot/
         return fileService.getFile(response);
 
-
     }
 
-    @PostMapping("/receiveAndPrintModel")
-    public String receiveAndPrintModel(@org.springframework.web.bind.annotation.RequestBody Model model ){
-        System.out.println("going to print model:");
-        System.out.println(model);
-        return "OK";
-    }
 
-    @GetMapping("/test")
-    public void test(){
-        System.out.println("Test request");
-    }
 
 
 }
