@@ -7,21 +7,13 @@ import com.rychly.bp_backend.model.PetriNet;
 import com.rychly.bp_backend.responses.FiredTransitionsResponse;
 import okhttp3.*;
 import okhttp3.RequestBody;
-import org.apache.tomcat.util.http.fileupload.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.configurationprocessor.json.JSONArray;
 import org.springframework.boot.configurationprocessor.json.JSONObject;
-//import org.json.JSONObject;
 import org.springframework.core.io.Resource;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
-
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -432,18 +424,22 @@ public class Controller {
             ArrayList<Log> logs = extractLogs("logs",cn);
             ArrayList<String> fired = extractFiredTransitions(logs);
             this.caseToFiredTransitions.put(cn,fired);
+            caseName = cn;
 
         }
 
         System.out.println(caseToFiredTransitions.toString());
 
         //OLD process for one case id - TODO remove
-        //send fired to frontend
+        //send fired to frontend - it will send fired sequence from the last
+        //case to frontend, but it is unnecessary
         ArrayList<Log> logs = extractLogs("logs",caseName);
         ArrayList<String> fired = extractFiredTransitions(logs);
         this.firedTransitions = fired;
 
         return new FiredTransitionsResponse(fired.toString());
+
+
 
     }
 
