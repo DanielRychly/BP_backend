@@ -382,6 +382,15 @@ public class Controller {
            System.out.println(e.getMessage());
         }
     }
+
+    //write to file inspired by https://www.baeldung.com/java-write-to-file
+    public void saveStringRepresentationOfModelLocally(String str) throws IOException {
+        BufferedWriter writer = new BufferedWriter(new FileWriter("src/main/resources/uploaded_petri_net_file.xml"));
+        writer.write(str);
+
+        writer.close();
+    }
+
     @PostMapping("/uploadLogs")
     @CrossOrigin(origins = "http://localhost:4200") //does not have to be here
     public FiredTransitionsResponse uploadLogs(@RequestParam("file") MultipartFile multipartFile, @RequestParam("caseName") String caseName, @RequestParam("modelId") String modelId) throws Exception{
@@ -443,6 +452,9 @@ public class Controller {
 
     }
 
+
+    //working version for uplaoding petri net xml as file from frontend
+    //deprecated, but working
     @PostMapping("/uploadPetriNet")
     public String uploadPetriNet(@RequestParam("file") MultipartFile multipartFile) throws Exception{
 
@@ -471,6 +483,48 @@ public class Controller {
         return "OK";
 
     }
+
+
+
+    //version to upload receive petri net xml as a string from frontend
+    @PostMapping("/uploadPetriNetAsString")
+    @CrossOrigin(origins = "http://localhost:4200") //does not have to be here
+    public String uploadPetriNetAsString(@RequestParam("netAsString") String  str) throws Exception{
+
+        //System.out.println("going to print the received string of xml file");
+        //System.out.println(str);
+
+
+        //1. save original net xml file
+        //saveMultipartFile(multipartFile,"uploaded_petri_net_file.xml"); //todo save string as xml file locally
+        saveStringRepresentationOfModelLocally(str);
+
+        for (String caseName:this.caseToFiredTransitions.keySet()){
+            //2. parse it - > create object of that petri net, use JAXB
+            PetriNet originalPetriNet = unmarshall("src/main/resources/uploaded_petri_net_file.xml");
+            PetriNet processNet = originalPetriNet.simulateTokenFlow(this.caseToFiredTransitions.get(caseName));
+            marshal(processNet,caseName);
+
+        }
+
+        //lazy convert of keyset to array list of strings
+        ArrayList<String> caseNames = new ArrayList<>();
+        for (String cn:this.caseToFiredTransitions.keySet()){
+            caseNames.add(cn);
+        }
+
+        //zip files
+        zipFiles(caseNames);
+
+
+
+        return "OK";
+
+    }
+
+
+
+
 
     @GetMapping(value = "/downloadProcessNet")
     @ResponseStatus(HttpStatus.OK)
