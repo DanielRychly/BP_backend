@@ -20,6 +20,7 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import java.io.*;
+import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -391,15 +392,41 @@ public class Controller {
         writer.close();
     }
 
+    public void cleanUp(){
+
+        //inspired by https://www.geeksforgeeks.org/files-deleteifexists-method-in-java-with-examples/
+        try{
+
+            Path dir = FileSystems.getDefault().getPath( "src/main/resources/" );
+            DirectoryStream<Path> stream = Files.newDirectoryStream( dir, "*.{xml,zip}" );
+            for (Path path : stream) {
+                Files.deleteIfExists(path);
+
+            }
+            stream.close();
+            System.out.println("clean up successful");
+
+        }catch (Exception e){
+            System.out.println("clean up failed");
+        }
+
+
+    }
+
     @PostMapping("/uploadLogs")
     @CrossOrigin(origins = "http://localhost:4200") //does not have to be here
     public FiredTransitionsResponse uploadLogs(@RequestParam("file") MultipartFile multipartFile, @RequestParam("caseName") String caseName, @RequestParam("modelId") String modelId) throws Exception{
 
-        //0. print caseName and model id
+
+
+        //0.1 print caseName and model id
         System.out.println("Case name: ");
         System.out.println(caseName);
         System.out.println("Model id: ");
         System.out.println(modelId);
+
+        //0.2 perform cleanup
+        cleanUp();
 
         //1. check index existence, then either delete + create or only create
         if (indexExists("logs")){
