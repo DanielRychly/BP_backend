@@ -479,6 +479,18 @@ public class PetriNet {
     }
 
 
+    public List<Place> getAllPlaces(){
+        return this.places;
+    }
+
+    public List<Transition> getAllTransitions(){
+        return this.transitions;
+    }
+
+    public List<Arc> getAllArcs(){
+        return this.arcs;
+    }
+
 
 }
 

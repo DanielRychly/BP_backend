@@ -1,14 +1,22 @@
 package com.rychly.bp_backend;
 
+import com.rychly.bp_backend.comparators.Log;
 import com.rychly.bp_backend.model.PetriNet;
 import com.rychly.bp_backend.model.Place;
 import com.rychly.bp_backend.model.Transition;
+import com.rychly.bp_backend.responses.FiredTransitionsResponse;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletResponse;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 
 public class PlayGround {
 
@@ -19,6 +27,9 @@ public class PlayGround {
             PetriNet processNet = unmarshall("C:\\Users\\rychl\\BP_stuff\\BP_backend\\src\\main\\resources\\processNet.xml");
 
         }catch (Exception e){}
+
+
+
 
 
 
@@ -46,5 +57,7 @@ public class PlayGround {
         }
 
     }
+
+
 
 }
