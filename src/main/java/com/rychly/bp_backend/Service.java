@@ -8,6 +8,10 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 import org.springframework.boot.configurationprocessor.json.JSONArray;
 import org.springframework.boot.configurationprocessor.json.JSONObject;
 import org.springframework.core.io.FileSystemResource;
@@ -47,16 +51,38 @@ public class Service {
 
     private final OkHttpClient client = new OkHttpClient();
 
+    private final String ELASTIC_PATH = "http://localhost:9200/";
+
+    //private static Logger logger = LogManager.getLogger(Service.class);
+
+    Logger logger = LoggerFactory.getLogger(Service.class);
+
+    /*
+    public void testLogger(){
+        logger.log(Level.INFO,"logger working");
+        //logger.log(Level.DEBUG,"");
+    }*/
+
+    /*
+    public void initializeLogger() throws IOException{
+        InputStream inputStream = new FileInputStream("src\\main\\resources\\log4j2.xml");
+        ConfigurationSource source = new ConfigurationSource(inputStream);
+        Configurator.initialize(null, source);
+
+    }*/
+
 
     private boolean indexExists(String indexName) throws Exception{
 
-        Request request = new Request.Builder().url("http://localhost:9200/"+indexName+"/").head().build();
+        Request request = new Request.Builder().url(ELASTIC_PATH+indexName+"/").head().build();
         Response response = client.newCall(request).execute();
         boolean success = response.isSuccessful();
         if(success){
-            System.out.println("Index exists");
+            //System.out.println("Index exists");
+            logger.info("Index exists");
         }else{
-            System.out.println("Index does not exist");
+            //System.out.println("Index does not exist");
+            logger.info("Index does not exist");
         }
         response.body().close();
         return success;
@@ -64,15 +90,17 @@ public class Service {
 
     private boolean deleteIndex(String indexName) throws Exception{
 
-        Request request = new Request.Builder().url("http://localhost:9200/"+indexName+"/").delete().build();
+        Request request = new Request.Builder().url(ELASTIC_PATH+indexName+"/").delete().build();
         Response response = client.newCall(request).execute();
         boolean success = response.isSuccessful();
 
         if(success){
-            System.out.println("Index deleted");
+            //System.out.println("Index deleted");
+            logger.info("Index deleted");
 
         }else{
-            System.out.println("Index not deleted");
+            //System.out.println("Index not deleted");
+            logger.info("Index not deleted");
 
         }
         response.body().close();
@@ -81,13 +109,15 @@ public class Service {
 
     private boolean createIndex(String indexName) throws Exception{
         RequestBody requestBody = RequestBody.create(null, new byte[0]);
-        Request request = new Request.Builder().url("http://localhost:9200/"+indexName+"/").put(requestBody).build();
+        Request request = new Request.Builder().url(ELASTIC_PATH+indexName+"/").put(requestBody).build();
         Response response = client.newCall(request).execute();
         boolean success = response.isSuccessful();
         if(success){
-            System.out.println("Index created");
+            //System.out.println("Index created");
+            logger.info("Index created");
         }else{
-            System.out.println("Index not created");
+            //System.out.println("Index not created");
+            logger.info("Index not created");
         }
         response.body().close();
 
@@ -139,7 +169,8 @@ public class Service {
         try
         {
 
-            System.out.println("printing the logs");
+            //System.out.println("printing the logs");
+            logger.info("printing the logs");
             //the file to be opened for reading
             FileInputStream fis=new FileInputStream("src/main/resources/uploaded_log_file.txt");
             Scanner sc=new Scanner(fis);    //file to be scanned
@@ -154,14 +185,13 @@ public class Service {
                 boolean matchFound = matcher.find();
 
                 if(matchFound) {
-                    System.out.println(line);
+                    //System.out.println(line);
+                    logger.info(line);
                     matchedLines.add(line);
                 } else {
 
                 }
 
-
-                //System.out.println(sc.nextLine());      //returns the line that was skipped
             }
             sc.close();     //closes the scanner
         }
@@ -172,9 +202,9 @@ public class Service {
 
 
         ArrayList<String> caseNames = new ArrayList<String>();
-        System.out.println("printing case names for the net");
+        //System.out.println("printing case names for the net");
+        logger.info("printing case names for the net");
         for (String log:matchedLines){
-            //System.out.println(log.split("Case ")[1].split(" ")[0]);
             caseNames.add(log.split("Case ")[1].split(" ")[0]);
 
         }
@@ -185,7 +215,7 @@ public class Service {
 
         try {
 
-            Request request = new Request.Builder().url("http://localhost:9200/" + indexName + "/_search?size=1000").get().build();
+            Request request = new Request.Builder().url(ELASTIC_PATH + indexName + "/_search?size=1000").get().build();
             Response response = client.newCall(request).execute();
 
             boolean success = response.isSuccessful();
@@ -193,14 +223,18 @@ public class Service {
 
                 String responseString = response.body().string();
 
-                System.out.println("Checking if index empty");
-                System.out.println(responseString);
+                //System.out.println("Checking if index empty");
+                //System.out.println(responseString);
+
+                logger.info("Checking if index empty");
+                logger.info(responseString);
 
                 //parse response to json - not needed
                 JSONObject obj = new JSONObject(responseString);
 
                 int numberOfHits = Integer.parseInt(obj.getJSONObject("hits").getJSONObject("total").getString("value"));
-                System.out.println(numberOfHits);
+                //System.out.println(numberOfHits);
+                //logger.info(String(numberOfHits));
 
 
                 if(numberOfHits==0){
@@ -219,19 +253,21 @@ public class Service {
 
             } else {
                 response.body().close();
-                System.out.println("ERR: Could check if index is empty");
+                //System.out.println("ERR: Could not check if index is empty");
+                logger.info("ERR: Could not check if index is empty");
                 return true;
             }
         }catch(Exception e){
 
-            System.out.print(e.getCause());
+            //System.out.print(e.getCause());
+           // logger.info(e.getCause());
         }
         return true;
     }
 
     private ArrayList<Log> extractLogs(String indexName, String caseName) throws Exception{
 
-        Request request = new Request.Builder().url("http://localhost:9200/"+indexName+"/_search?size=1000").get().build();
+        Request request = new Request.Builder().url(ELASTIC_PATH+indexName+"/_search?size=1000").get().build();
         Response response = client.newCall(request).execute();
         boolean success = response.isSuccessful();
 
@@ -239,8 +275,6 @@ public class Service {
             String responseString = response.body().string();
             JSONObject firedJSON = new JSONObject(responseString);
             JSONArray ja = firedJSON.getJSONObject("hits").getJSONArray("hits");
-            //System.out.println("ExtractedSequence:");
-            //System.out.println(ja.toString());
 
             //get array list version
             ArrayList<Log> list = new ArrayList<Log>();
@@ -287,9 +321,12 @@ public class Service {
             list.sort(new logComparator());
 
 
-            System.out.println("printing items in list");
+            //System.out.println("printing items in list");
+            logger.info("printing items in list");
+
             for(int i=0;i<list.size();i++){
-                System.out.println(list.get(i));
+                //System.out.println(list.get(i));
+                logger.info(list.get(i).toString());
             }
 
             //sort array list version
@@ -299,7 +336,8 @@ public class Service {
             //return ja.toString();
 
         }else{
-            System.out.println("ERR: Could not get index data");
+            //System.out.println("ERR: Could not get index data");
+            logger.info("ERR: Could not get index data");
             return null;
         }
 
@@ -381,7 +419,8 @@ public class Service {
             zipOut.close();
             fos.close();
         }catch (Exception e){
-            System.out.println(e.getMessage());
+            //System.out.println(e.getMessage());
+            logger.info(e.getMessage());
         }
     }
 
@@ -405,10 +444,12 @@ public class Service {
 
             }
             stream.close();
-            System.out.println("clean up successful");
+            //System.out.println("clean up successful");
+            logger.info("clean up successful");
 
         }catch (Exception e){
-            System.out.println("clean up failed");
+            //System.out.println("clean up failed");
+            logger.info("clean up failed");
         }
 
 
@@ -438,10 +479,15 @@ public class Service {
 
 
         //0.1 print caseName and model id
-        System.out.println("Case name: ");
-        System.out.println(caseName);
-        System.out.println("Model id: ");
-        System.out.println(modelId);
+        //System.out.println("Case name: ");
+        //System.out.println(caseName);
+        //System.out.println("Model id: ");
+        //System.out.println(modelId);
+
+        logger.info("Case name: ");
+        logger.info(caseName);
+        logger.info("Model id: ");
+        logger.info(modelId);
 
         //0.2 perform cleanup
         cleanUp();
@@ -482,7 +528,8 @@ public class Service {
 
         }
 
-        System.out.println(caseToFiredTransitions.toString());
+        //System.out.println(caseToFiredTransitions.toString());
+        logger.info(caseToFiredTransitions.toString());
 
         //OLD process for one case id - TODO remove
         //send fired to frontend - it will send fired sequence from the last
@@ -499,12 +546,7 @@ public class Service {
 
     public String uploadPetriNetAsString(String str) throws Exception{
 
-        //System.out.println("going to print the received string of xml file");
-        //System.out.println(str);
-
-
         //1. save original net xml file
-        //saveMultipartFile(multipartFile,"uploaded_petri_net_file.xml"); //todo save string as xml file locally
         saveStringRepresentationOfModelLocally(str);
 
         for (String caseName:this.caseToFiredTransitions.keySet()){

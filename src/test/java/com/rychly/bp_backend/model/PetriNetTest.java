@@ -1,7 +1,12 @@
 package com.rychly.bp_backend.model;
 
+import okhttp3.*;
+import okio.BufferedSink;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -19,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class PetriNetTest {
 
+    private final OkHttpClient client = new OkHttpClient();
 
 
     @Test
@@ -453,6 +459,8 @@ class PetriNetTest {
 
 
     }
+
+
 
 
 }
