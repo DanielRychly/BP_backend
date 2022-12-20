@@ -1,5 +1,6 @@
 package com.rychly.bp_backend;
-import com.rychly.bp_backend.responses.FiredTransitionsResponse;
+
+import com.rychly.bp_backend.responses.MyResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
@@ -22,15 +23,13 @@ public class Controller {
 
     @PostMapping("/uploadLogs")
     @CrossOrigin(origins = "http://localhost:4200") //does not have to be here
-    public FiredTransitionsResponse uploadLogs(@RequestParam("file") MultipartFile multipartFile,
-                                               @RequestParam("caseName") String caseName,
-                                               @RequestParam("modelId") String modelId) throws Exception{
+    public MyResponse uploadLogs(@RequestParam("file") MultipartFile multipartFile,
+                                 @RequestParam("modelId") String modelId) throws Exception{
 
-        return this.service.uploadLogs(multipartFile,caseName,modelId);
+        return this.service.uploadLogs(multipartFile,modelId);
 
 
     }
-
 
     @PostMapping("/uploadPetriNetAsString")
     @CrossOrigin(origins = "http://localhost:4200") //does not have to be here
@@ -41,7 +40,6 @@ public class Controller {
         return this.service.uploadPetriNetAsString(str);
 
     }
-
 
     @GetMapping(value = "/downloadProcessNet")
     @ResponseStatus(HttpStatus.OK)

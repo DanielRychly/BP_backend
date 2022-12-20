@@ -3,7 +3,8 @@ package com.rychly.bp_backend;
 import com.rychly.bp_backend.comparators.Log;
 import com.rychly.bp_backend.comparators.logComparator;
 import com.rychly.bp_backend.model.PetriNet;
-import com.rychly.bp_backend.responses.FiredTransitionsResponse;
+
+import com.rychly.bp_backend.responses.MyResponse;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -11,17 +12,12 @@ import okhttp3.Response;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.Level;
 import org.springframework.boot.configurationprocessor.json.JSONArray;
 import org.springframework.boot.configurationprocessor.json.JSONObject;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
-
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -53,23 +49,7 @@ public class Service {
 
     private final String ELASTIC_PATH = "http://localhost:9200/";
 
-    //private static Logger logger = LogManager.getLogger(Service.class);
-
     Logger logger = LoggerFactory.getLogger(Service.class);
-
-    /*
-    public void testLogger(){
-        logger.log(Level.INFO,"logger working");
-        //logger.log(Level.DEBUG,"");
-    }*/
-
-    /*
-    public void initializeLogger() throws IOException{
-        InputStream inputStream = new FileInputStream("src\\main\\resources\\log4j2.xml");
-        ConfigurationSource source = new ConfigurationSource(inputStream);
-        Configurator.initialize(null, source);
-
-    }*/
 
 
     private boolean indexExists(String indexName) throws Exception{
@@ -78,10 +58,8 @@ public class Service {
         Response response = client.newCall(request).execute();
         boolean success = response.isSuccessful();
         if(success){
-            //System.out.println("Index exists");
             logger.info("Index exists");
         }else{
-            //System.out.println("Index does not exist");
             logger.info("Index does not exist");
         }
         response.body().close();
@@ -95,11 +73,9 @@ public class Service {
         boolean success = response.isSuccessful();
 
         if(success){
-            //System.out.println("Index deleted");
             logger.info("Index deleted");
 
         }else{
-            //System.out.println("Index not deleted");
             logger.info("Index not deleted");
 
         }
@@ -113,10 +89,8 @@ public class Service {
         Response response = client.newCall(request).execute();
         boolean success = response.isSuccessful();
         if(success){
-            //System.out.println("Index created");
             logger.info("Index created");
         }else{
-            //System.out.println("Index not created");
             logger.info("Index not created");
         }
         response.body().close();
@@ -168,9 +142,8 @@ public class Service {
 
         try
         {
-
-            //System.out.println("printing the logs");
             logger.info("printing the logs");
+
             //the file to be opened for reading
             FileInputStream fis=new FileInputStream("src/main/resources/uploaded_log_file.txt");
             Scanner sc=new Scanner(fis);    //file to be scanned
@@ -185,11 +158,9 @@ public class Service {
                 boolean matchFound = matcher.find();
 
                 if(matchFound) {
-                    //System.out.println(line);
+
                     logger.info(line);
                     matchedLines.add(line);
-                } else {
-
                 }
 
             }
@@ -202,7 +173,6 @@ public class Service {
 
 
         ArrayList<String> caseNames = new ArrayList<String>();
-        //System.out.println("printing case names for the net");
         logger.info("printing case names for the net");
         for (String log:matchedLines){
             caseNames.add(log.split("Case ")[1].split(" ")[0]);
@@ -223,9 +193,6 @@ public class Service {
 
                 String responseString = response.body().string();
 
-                //System.out.println("Checking if index empty");
-                //System.out.println(responseString);
-
                 logger.info("Checking if index empty");
                 logger.info(responseString);
 
@@ -233,9 +200,6 @@ public class Service {
                 JSONObject obj = new JSONObject(responseString);
 
                 int numberOfHits = Integer.parseInt(obj.getJSONObject("hits").getJSONObject("total").getString("value"));
-                //System.out.println(numberOfHits);
-                //logger.info(String(numberOfHits));
-
 
                 if(numberOfHits==0){
                     //index is empty, logstash has not feeded it
@@ -253,14 +217,12 @@ public class Service {
 
             } else {
                 response.body().close();
-                //System.out.println("ERR: Could not check if index is empty");
                 logger.info("ERR: Could not check if index is empty");
                 return true;
             }
         }catch(Exception e){
+            logger.error("Probably elasticsearch error");
 
-            //System.out.print(e.getCause());
-           // logger.info(e.getCause());
         }
         return true;
     }
@@ -270,6 +232,7 @@ public class Service {
         Request request = new Request.Builder().url(ELASTIC_PATH+indexName+"/_search?size=1000").get().build();
         Response response = client.newCall(request).execute();
         boolean success = response.isSuccessful();
+        final String SOURCE = "_source";
 
         if(success){
             String responseString = response.body().string();
@@ -278,21 +241,20 @@ public class Service {
 
             //get array list version
             ArrayList<Log> list = new ArrayList<Log>();
-            //ArrayList<JSONObject> list = new ArrayList<JSONObject>();
             for(int i=0;i<ja.length();i++){
 
 
                 Log l = new Log();
 
-                l.setYear2TS(ja.getJSONObject(i).getJSONObject("_source").get("year2TS").toString());
-                l.setMonth2TS(ja.getJSONObject(i).getJSONObject("_source").get("month2TS").toString());
-                l.setDay2TS(ja.getJSONObject(i).getJSONObject("_source").get("day2TS").toString());
+                l.setYear2TS(ja.getJSONObject(i).getJSONObject(SOURCE).get("year2TS").toString());
+                l.setMonth2TS(ja.getJSONObject(i).getJSONObject(SOURCE).get("month2TS").toString());
+                l.setDay2TS(ja.getJSONObject(i).getJSONObject(SOURCE).get("day2TS").toString());
 
-                l.setHour2TS(ja.getJSONObject(i).getJSONObject("_source").get("hour2TS").toString());
-                l.setMinute2TS(ja.getJSONObject(i).getJSONObject("_source").get("minute2TS").toString());
-                l.setSecond2TS(ja.getJSONObject(i).getJSONObject("_source").get("second2TS").toString());
+                l.setHour2TS(ja.getJSONObject(i).getJSONObject(SOURCE).get("hour2TS").toString());
+                l.setMinute2TS(ja.getJSONObject(i).getJSONObject(SOURCE).get("minute2TS").toString());
+                l.setSecond2TS(ja.getJSONObject(i).getJSONObject(SOURCE).get("second2TS").toString());
 
-                l.setCase_id(ja.getJSONObject(i).getJSONObject("_source").get("case_id").toString());
+                l.setCase_id(ja.getJSONObject(i).getJSONObject(SOURCE).get("case_id").toString());
 
                 try{
                     //some logs dont have fired transition id - tranition wasnt named
@@ -300,7 +262,7 @@ public class Service {
 
                 }catch (Exception e){
 
-
+                    logger.error("err while trying to fix unnamed transition");
                 }
 
 
@@ -310,8 +272,6 @@ public class Service {
                     list.add(l);
                 }
 
-                //not filtered logs
-                //list.add(l);
 
             }
 
@@ -320,25 +280,22 @@ public class Service {
             //sort array of indexed and stripped logs
             list.sort(new logComparator());
 
-
-            //System.out.println("printing items in list");
             logger.info("printing items in list");
 
             for(int i=0;i<list.size();i++){
-                //System.out.println(list.get(i));
-                logger.info(list.get(i).toString());
+                String log = list.get(i).toString();
+                logger.info(log);
             }
 
-            //sort array list version
 
             return list;
 
-            //return ja.toString();
 
         }else{
-            //System.out.println("ERR: Could not get index data");
+
             logger.info("ERR: Could not get index data");
-            return null;
+
+            return new ArrayList<>();
         }
 
     }
@@ -376,7 +333,7 @@ public class Service {
 
     }
 
-    public void marshal(PetriNet pn,String caseName) throws JAXBException, IOException {
+    public void marshal(PetriNet pn,String caseName) throws JAXBException {
 
 
         JAXBContext context = JAXBContext.newInstance(PetriNet.class);
@@ -419,7 +376,7 @@ public class Service {
             zipOut.close();
             fos.close();
         }catch (Exception e){
-            //System.out.println(e.getMessage());
+
             logger.info(e.getMessage());
         }
     }
@@ -444,11 +401,11 @@ public class Service {
 
             }
             stream.close();
-            //System.out.println("clean up successful");
+
             logger.info("clean up successful");
 
         }catch (Exception e){
-            //System.out.println("clean up failed");
+
             logger.info("clean up failed");
         }
 
@@ -466,28 +423,17 @@ public class Service {
         response.setContentType("application/zip");
         response.setHeader("Content-Disposition", "attachment;filename=compressed.zip");
         response.setStatus(HttpServletResponse.SC_OK);
-        Resource resource = resource = new FileSystemResource("C:\\Users\\rychl\\BP_stuff\\BP_backend\\src\\main\\resources\\compressed.zip");  //current version - downloads zip archive of process nets for all cases
+        Resource resource = new FileSystemResource("C:\\Users\\rychl\\BP_stuff\\BP_backend\\src\\main\\resources\\compressed.zip");  //current version - downloads zip archive of process nets for all cases
         return resource;
     }
 
 
 
-    public FiredTransitionsResponse uploadLogs(MultipartFile multipartFile,
-                                               String caseName,
-                                               String modelId) throws Exception{
+    public MyResponse uploadLogs(MultipartFile multipartFile,
+                                 String modelId) throws Exception{
 
-
-
-        //0.1 print caseName and model id
-        //System.out.println("Case name: ");
-        //System.out.println(caseName);
-        //System.out.println("Model id: ");
-        //System.out.println(modelId);
-
-        logger.info("Case name: ");
-        logger.info(caseName);
-        logger.info("Model id: ");
-        logger.info(modelId);
+        //0.1 print  model id
+        logger.info(String.format("Model id: %s",modelId));
 
         //0.2 perform cleanup
         cleanUp();
@@ -524,23 +470,13 @@ public class Service {
             ArrayList<Log> logs = extractLogs("logs",cn);
             ArrayList<String> fired = extractFiredTransitions(logs);
             this.caseToFiredTransitions.put(cn,fired);
-            caseName = cn;
+
 
         }
 
-        //System.out.println(caseToFiredTransitions.toString());
         logger.info(caseToFiredTransitions.toString());
 
-        //OLD process for one case id - TODO remove
-        //send fired to frontend - it will send fired sequence from the last
-        //case to frontend, but it is unnecessary
-        ArrayList<Log> logs = extractLogs("logs",caseName);
-        ArrayList<String> fired = extractFiredTransitions(logs);
-        this.firedTransitions = fired;
-
-        return new FiredTransitionsResponse(fired.toString());
-
-
+        return new MyResponse("OK");
 
     }
 

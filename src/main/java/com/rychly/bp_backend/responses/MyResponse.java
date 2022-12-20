@@ -9,7 +9,7 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class FiredTransitionsResponse {
-    private String firedTransitions;
+public class MyResponse {
+    private String response;
 
 }
