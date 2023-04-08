@@ -33,11 +33,11 @@ public class Controller {
 
     @PostMapping("/uploadPetriNetAsString")
     @CrossOrigin(origins = "http://localhost:4200") //does not have to be here
-    public String uploadPetriNetAsString(@RequestParam("netAsString") String  str) throws Exception{
+    public String uploadPetriNetAsString(@RequestParam("netAsString") String  strOfNetXml) throws Exception{
 
         //version to upload receive petri net xml as a string from frontend
 
-        return this.service.uploadPetriNetAsString(str);
+        return this.service.uploadPetriNetAsString(strOfNetXml);
 
     }
 
